@@ -6,6 +6,7 @@ Created on Wed Mar  9 13:01:27 2022
 @author: Paolo Cozzi <bunop@libero.it>
 """
 
+# https://droog.gs.washington.edu/parc/images/iupac.html
 IUPAC_AMBIGUITY_CODES = {
     'A': 'A',
     'C': 'C',
