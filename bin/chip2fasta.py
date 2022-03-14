@@ -37,7 +37,7 @@ if __name__ == '__main__':
     for i, record in enumerate(read_Manifest(args.input, delimiter=",")):
         logger.debug("-------------------------------------------------------")
 
-        seq = Bio.Seq.MutableSeq(record.sourceseq)
+        seq = Bio.Seq.Seq(record.sourceseq)
 
         snp = record.snp
 
@@ -64,6 +64,9 @@ if __name__ == '__main__':
         end = idx + len(snp) + 1
 
         logger.debug(f"found {snp} in {start}:{end}")
+
+        # trasnform in a mutable object
+        seq = seq.tomutable()
 
         # replace SNP with ambiguos code
         seq[start:end] = SNP2BASES[snp]

@@ -8,14 +8,10 @@ Created on Mon Feb  8 17:15:26 2021
 
 import re
 import csv
-import datetime
 import logging
 import collections
 
 import Bio.Seq
-
-from typing import Union
-from dateutil.parser import parse as parse_date
 
 from .utils import sanitize, text_or_gzip_open
 
@@ -71,26 +67,6 @@ def skip_until_section(handle, section) -> (int, list):
             break
 
     return position, skipped
-
-
-def search_manifactured_date(header: list) -> Union[datetime.datetime, None]:
-    """Grep manifactured date from illumina header
-
-    Args:
-        header (list): the illumina header skipped lines
-    Returns:
-        datetime.datetime: a datetime object
-    """
-
-    records = list(filter(lambda record: 'date' in record.lower(), header))
-
-    date = None
-
-    if records:
-        record = records[0].split(",")
-        date = parse_date(record[1])
-
-    return date
 
 
 def sniff_file(handle, size, position=0):
@@ -174,12 +150,6 @@ def read_Manifest(path: str, size=2048, skip=0, delimiter=None):
         # sanitize column names
         header = [sanitize(column) for column in header]
 
-        # ok try to get the manifatcured date
-        date = search_manifactured_date(skipped)
-
-        # add date to header
-        header.append("date")
-
         logger.info(header)
 
         # define a datatype for my data
@@ -191,9 +161,6 @@ def read_Manifest(path: str, size=2048, skip=0, delimiter=None):
             if record[0] == '[Controls]':
                 logger.debug("[Assay] section processed")
                 break
-
-            # add date to record
-            record.append(date)
 
             # forcing data types
             try:
