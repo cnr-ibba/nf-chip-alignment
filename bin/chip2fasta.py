@@ -75,7 +75,8 @@ if __name__ == '__main__':
             id=record.name,
             name=record.name,
             description=(
-                f"iln_snp: {snp}, iln_strand: {record.ilmnstrand}, "
+                f"snp {snp}, iln_snp: {record.snp}, iln_pos: {idx}, "
+                f"iln_strand: {record.ilmnstrand}, "
                 f"src_strand: {record.sourcestrand}"
             ),
             seq=seq)
