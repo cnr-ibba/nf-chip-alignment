@@ -40,7 +40,7 @@ process UCSC_BLAT {
 
     output:
     // TODO nf-core: Named file extensions MUST be emitted for ALL output channels
-    path "*.psl", emit: psl
+    path "*.pslx", emit: pslx
     // TODO nf-core: List additional required output channels/values here
     path "versions.yml", emit: versions
 
@@ -62,7 +62,7 @@ process UCSC_BLAT {
         $genome \\
         $fasta \\
         $args \\
-        output.psl
+        output.pslx
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
