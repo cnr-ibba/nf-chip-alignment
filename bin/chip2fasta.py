@@ -14,7 +14,7 @@ import Bio.SeqIO
 import Bio.SeqRecord
 
 from helper import SNP2BASES
-from helper.illumina import read_Manifest, IlluSNP
+from helper.illumina import read_Manifest, IlluSNP, IlluSNPException
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,13 @@ if __name__ == '__main__':
         seq = Bio.Seq.Seq(record.sourceseq)
 
         # read snp as illuSNP
-        iln_snp = IlluSNP(record.sourceseq, max_iter=25)
+        try:
+            iln_snp = IlluSNP(record.sourceseq, max_iter=60)
+        except IlluSNPException as exc:
+            logger.warning(exc)
+            logger.warning(
+                f"Can't determine illumina strand for '{record.name}'")
+            continue
 
         logger.debug(
             f"id: '{record.name}', iln_snp: {iln_snp.snp}, iln_strand: "

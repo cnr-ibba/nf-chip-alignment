@@ -321,7 +321,15 @@ class IlluSNP():
             for n in range(1, max_iter+1):
                 # pos is a tuple of indices, like (10, 15). The stop position
                 # is not included
-                pair = "%s/%s" % (sequence[pos[0]-n], sequence[pos[1]+n-1])
+                try:
+                    pair = "%s/%s" % (sequence[pos[0]-n], sequence[pos[1]+n-1])
+
+                except IndexError as exc:
+                    logger.error(exc)
+                    raise IlluSNPException(
+                        "Can't find unambiguous pair, max_iter exceed "
+                        "sequence length"
+                    )
 
                 logger.debug("Step %s: considering pair %s" % (n, pair))
 
