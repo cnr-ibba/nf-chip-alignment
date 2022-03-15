@@ -13,8 +13,8 @@ import Bio.Seq
 import Bio.SeqIO
 import Bio.SeqRecord
 
-from helper import SNP2BASES, complement
-from helper.illumina import read_Manifest
+from helper import SNP2BASES
+from helper.illumina import read_Manifest, IlluSNP
 
 logger = logging.getLogger(__name__)
 
@@ -39,45 +39,33 @@ if __name__ == '__main__':
 
         seq = Bio.Seq.Seq(record.sourceseq)
 
-        snp = record.snp
+        # read snp as illuSNP
+        iln_snp = IlluSNP(record.sourceseq, max_iter=25)
 
         logger.debug(
-            f"id: '{record.name}', iln_snp: {snp}, iln_strand: "
-            f"{record.ilmnstrand}, src_strand: {record.sourcestrand}")
+            f"id: '{record.name}', iln_snp: {iln_snp.snp}, iln_strand: "
+            f"{iln_snp.strand}")
+
         # logger.debug(f"topgenomicseq: {record.topgenomicseq}")
         logger.debug(f"record.sourceseq: {seq}")
 
-        # ISSUE1: I can't find the illumina SNP in sequence
-        if record.ilmnstrand == 'TOP' and record.sourcestrand == 'BOT':
-            logger.debug(f"Convert '{snp}' into '{complement(snp)}'")
-            # transform the input SNP
-            snp = complement(snp)
-
         # find SNP in sequence
-        idx = seq.find(snp)
+        start, end = iln_snp.pos
 
-        if idx < 0:
-            raise Exception(f"Snp '[{snp}]' not found in {seq}")
-
-        # get snp interval. Mind to []
-        start = idx - 1
-        end = idx + len(snp) + 1
-
-        logger.debug(f"found {snp} in {start}:{end}")
+        logger.debug(f"found {iln_snp.snp} in {start}:{end}")
 
         # trasnform in a mutable object
         seq = seq.tomutable()
 
         # replace SNP with ambiguos code
-        seq[start:end] = SNP2BASES[snp]
+        seq[start:end] = SNP2BASES[iln_snp.snp]
 
         record = Bio.SeqRecord.SeqRecord(
             id=record.name,
             name=record.name,
             description=(
-                f"snp {snp}, iln_snp: {record.snp}, iln_pos: {idx}, "
-                f"iln_strand: {record.ilmnstrand}, "
-                f"src_strand: {record.sourcestrand}"
+                f"iln_snp: {iln_snp.snp}, iln_pos: {start+1}, "
+                f"iln_strand: {iln_snp.strand}"
             ),
             seq=seq)
 
