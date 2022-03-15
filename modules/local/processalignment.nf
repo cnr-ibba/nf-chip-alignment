@@ -15,8 +15,8 @@
 // TODO nf-core: Optional inputs are not currently supported by Nextflow. However, using an empty
 //               list (`[]`) instead of a file can be used to work around this issue.
 
-process MANIFEST2FASTA {
-    tag 'fastaconversion'
+process PROCESSALIGNMENT {
+    tag 'processalignment'
     label 'process_low'
 
     // TODO nf-core: List required Conda package(s).
@@ -35,11 +35,14 @@ process MANIFEST2FASTA {
     //               https://github.com/nf-core/modules/blob/master/modules/bwa/index/main.nf
     // TODO nf-core: Where applicable please provide/convert compressed files as input/output
     //               e.g. "*.fastq.gz" and NOT "*.fastq", "*.bam" and NOT "*.sam" etc.
-    path(manifest)
+    path fasta
+    path genome
+    path pslx
 
     output:
     // TODO nf-core: Named file extensions MUST be emitted for ALL output channels
-    path("*.fasta"), emit: fasta
+    path "*.csv", emit: csv
+    path "*.aln", emit: aln
 
     script:
     def args = task.ext.args ?: ''
@@ -54,8 +57,11 @@ process MANIFEST2FASTA {
     // TODO nf-core: Please replace the example samtools command below with your module's command
     // TODO nf-core: Please indent the command appropriately (4 spaces!!) to help with readability ;)
     """
-    chip2fasta.py \\
-        --input $manifest \\
-        --output ${manifest.baseName}.fasta
+    process_alignment.py \\
+        -a ${pslx} \\
+        -c ${fasta} \\
+        -g ${genome} \\
+        -o output.csv \\
+        --output_aln output.aln
     """
 }

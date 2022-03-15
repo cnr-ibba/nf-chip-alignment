@@ -6,6 +6,7 @@ nextflow.enable.dsl = 2
 // include workflow dependencies from external modules
 include { MANIFEST2FASTA } from './modules/local/manifest2fasta'
 include { UCSC_BLAT } from './modules/local/ucsc/blat'
+include { PROCESSALIGNMENT } from './modules/local/processalignment'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from './modules/nf-core/modules/custom/dumpsoftwareversions/main'
 
 // get manifest from parameters
@@ -18,6 +19,8 @@ workflow {
     MANIFEST2FASTA(manifest_ch)
 
     UCSC_BLAT(MANIFEST2FASTA.out.fasta, genome_ch)
+
+    PROCESSALIGNMENT(MANIFEST2FASTA.out.fasta, genome_ch, UCSC_BLAT.out.pslx)
 
     ch_versions = ch_versions.mix(UCSC_BLAT.out.versions)
 
