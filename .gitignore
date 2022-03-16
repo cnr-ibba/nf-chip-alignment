@@ -162,3 +162,7 @@ cython_debug/
 
 # ignore singularity images
 *.sif
+
+# ignore output files
+*.2bit
+*.psl*

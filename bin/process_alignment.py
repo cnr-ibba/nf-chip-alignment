@@ -8,7 +8,6 @@ Created on Mon Mar 14 16:56:04 2022
 
 import re
 import csv
-import sys
 import logging
 import argparse
 

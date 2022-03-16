@@ -5,6 +5,7 @@ nextflow.enable.dsl = 2
 
 // include workflow dependencies from external modules
 include { MANIFEST2FASTA } from './modules/local/manifest2fasta'
+include { UCSC_FATOTWOBIT } from './modules/local/ucsc/fatotwobit'
 include { UCSC_BLAT } from './modules/local/ucsc/blat'
 include { PROCESSALIGNMENT } from './modules/local/processalignment'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from './modules/nf-core/modules/custom/dumpsoftwareversions/main'
@@ -16,9 +17,14 @@ ch_versions = Channel.empty()
 
 
 workflow {
+    // convert a manifest into fasta
     MANIFEST2FASTA(manifest_ch)
 
-    UCSC_BLAT(MANIFEST2FASTA.out.fasta, genome_ch)
+    // database preparation
+    UCSC_FATOTWOBIT(genome_ch)
+
+    // probe alignment
+    UCSC_BLAT(MANIFEST2FASTA.out.fasta, UCSC_FATOTWOBIT.out.twobit)
 
     PROCESSALIGNMENT(MANIFEST2FASTA.out.fasta, genome_ch, UCSC_BLAT.out.pslx)
 
