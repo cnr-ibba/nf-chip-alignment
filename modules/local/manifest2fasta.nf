@@ -16,7 +16,7 @@
 //               list (`[]`) instead of a file can be used to work around this issue.
 
 process MANIFEST2FASTA {
-    tag 'fastaconversion'
+    tag "$manifest"
     label 'process_low'
 
     // TODO nf-core: List required Conda package(s).

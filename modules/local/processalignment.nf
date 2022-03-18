@@ -16,7 +16,7 @@
 //               list (`[]`) instead of a file can be used to work around this issue.
 
 process PROCESSALIGNMENT {
-    tag 'processalignment'
+    tag "$pslx"
     label 'process_low'
 
     // TODO nf-core: List required Conda package(s).
