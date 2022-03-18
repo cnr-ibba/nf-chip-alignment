@@ -103,7 +103,7 @@ def parse_chromosome(sequence):
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    logging.basicConfig(level=logging.DEBUG, format=log_fmt)
+    logging.basicConfig(level=logging.INFO, format=log_fmt)
 
     # read the chip fasta file
     chip_sequences = Bio.SeqIO.index(args.chip_sequence, "fasta")
@@ -127,7 +127,7 @@ if __name__ == '__main__':
     writer.writerow(header)
 
     for result in Bio.SearchIO.parse(args.alignment, "blat-psl", pslx=True):
-        logger.debug("-------------------------------------------------------")
+        logger.info("-------------------------------------------------------")
         # result represent a single search query
 
         # collect SNP info
@@ -135,7 +135,7 @@ if __name__ == '__main__':
         iln_snp, iln_pos, iln_strand = parse_description(
             snp_sequence.description)
 
-        logger.debug(
+        logger.info(
             f"Processing SNP: {result.id}, iln_snp: {iln_snp}, "
             f"iln_pos: {iln_pos}, iln_strand: {iln_strand} "
             f"probe length {result.seq_len}")
@@ -159,7 +159,7 @@ if __name__ == '__main__':
                 )
                 return False
 
-            logger.debug(
+            logger.info(
                 f"Keeping {hsp.hit_id}:{hsp.hit_range_all}: "
                 f"Score: {hsp.score} (ident_pct {hsp.ident_pct})"
             )
@@ -168,7 +168,7 @@ if __name__ == '__main__':
 
         filtered = result.hsp_filter(filter_hsps)
 
-        logger.debug(f"Got {len(filtered.hits)} hits after filtering")
+        logger.info(f"Got {len(filtered.hits)} hits after filtering")
 
         if len(filtered.hits) == 0 or len(filtered.hsps) == 0:
             logger.warning(
@@ -190,7 +190,8 @@ if __name__ == '__main__':
                     f"{hsp.hit_id}:{hsp.hit_range_all}: "
                     f"Score: {hsp.score} (ident_pct {hsp.ident_pct})"
                 )
-            logger.error("Got more alignment than expected for {result.id}")
+            logger.warning(
+                f"Got more alignment than expected for {result.id}")
 
             # write an empty row
             line = [
@@ -203,21 +204,21 @@ if __name__ == '__main__':
             continue
 
         for i, hit in enumerate(filtered.hits):
-            logger.debug(f"Processing hit {i}: {hit.id} for {result.id}")
+            logger.info(f"Processing hit {i}: {hit.id} for {result.id}")
 
             chr_sequence = genome_sequences[hit.id]
 
             # attempt to determine chromosome name
             chrom = parse_chromosome(chr_sequence)
 
-            logger.debug(f"Detected chromosome for {hit.id} is {chrom}")
+            logger.info(f"Detected chromosome for {hit.id} is {chrom}")
 
             # hsp represents region(s) of significant alignments between
             # query and hit sequences
-            logger.debug(f"Got {len(hit.hsps)} hsp for {hit.id}")
+            logger.info(f"Got {len(hit.hsps)} hsp for {hit.id}")
 
             for j, hsp in enumerate(hit.hsps):
-                logger.debug(
+                logger.info(
                     f"Hsp {j}: has {len(hsp.fragments)} fragments. "
                     f"Query range {hsp.query_range_all} "
                     f"({hsp.query_strand_all}), "
@@ -226,7 +227,7 @@ if __name__ == '__main__':
 
                 orient = check_strand(hsp)
 
-                logger.debug(f"Orient is '{orient}'")
+                logger.info(f"Orient is '{orient}'")
 
                 # get REF sequence from reference genome
 
@@ -239,14 +240,14 @@ if __name__ == '__main__':
                 # this is 0-based index
                 ref_allele = chr_sequence[ref_pos].upper()
 
-                logger.debug(
+                logger.info(
                     f"Reference allele: {ref_allele} at "
                     f"{hit.id}:{ref_pos+1}"
                 )
 
                 alt_allele = get_alt_allele(iln_snp, ref_allele, orient)
 
-                logger.debug(
+                logger.info(
                     f"Alternative allele: {alt_allele} at "
                     f"{hit.id}:{ref_pos+1}"
                 )
