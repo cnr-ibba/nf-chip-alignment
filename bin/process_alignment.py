@@ -164,7 +164,11 @@ if __name__ == '__main__':
 
         logger.debug(f"Got {len(filtered.hits)} hits after filtering")
 
-        if len(filtered.hits) > 1 or len(filtered.hsps) > 1:
+        if len(filtered.hits) == 0 or len(filtered.hsps) == 0:
+            logger.warning(
+                f"All alignements have been filtered out for {result.id}")
+
+        elif len(filtered.hits) > 1 or len(filtered.hsps) > 1:
             raise NotImplementedError("Got more alignment than expected")
 
         for i, hit in enumerate(filtered.hits):
@@ -202,7 +206,7 @@ if __name__ == '__main__':
                 ref_pos = hsp.hit_start + aln_pos
 
                 # this is 0-based index
-                ref_allele = chr_sequence[ref_pos]
+                ref_allele = chr_sequence[ref_pos].upper()
 
                 logger.debug(
                     f"Reference allele: {ref_allele} at "
