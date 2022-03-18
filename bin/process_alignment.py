@@ -137,7 +137,8 @@ if __name__ == '__main__':
 
         logger.debug(
             f"Processing SNP: {result.id}, iln_snp: {iln_snp}, "
-            f"iln_pos: {iln_pos}, iln_strand: {iln_strand}")
+            f"iln_pos: {iln_pos}, iln_strand: {iln_strand} "
+            f"probe length {result.seq_len}")
 
         # hit represents a single database hit
         logger.debug(f"Got {len(result.hits)} hits for {result.id}")
@@ -151,12 +152,17 @@ if __name__ == '__main__':
                 )
                 return False
 
-            if hsp.score < result.seq_len * 0.9:
+            if hsp.score < result.seq_len * 0.95 or hsp.ident_pct < 97:
                 logger.debug(
                     f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
                     f"Bad Score: {hsp.score} (ident_pct {hsp.ident_pct})"
                 )
                 return False
+
+            logger.debug(
+                f"Keeping {hsp.hit_id}:{hsp.hit_range_all}: "
+                f"Score: {hsp.score} (ident_pct {hsp.ident_pct})"
+            )
 
             return True
 
@@ -168,8 +174,33 @@ if __name__ == '__main__':
             logger.warning(
                 f"All alignements have been filtered out for {result.id}")
 
+            # write an empty row
+            line = [
+                result.id, 0, 0, None, iln_snp, None, iln_strand, None,
+                None, None]
+            logger.debug(f"Writing {line}")
+            writer.writerow(line)
+
+            # skip processing
+            continue
+
         elif len(filtered.hits) > 1 or len(filtered.hsps) > 1:
-            raise NotImplementedError("Got more alignment than expected")
+            for hsp in filtered.hsps:
+                logger.warning(
+                    f"{hsp.hit_id}:{hsp.hit_range_all}: "
+                    f"Score: {hsp.score} (ident_pct {hsp.ident_pct})"
+                )
+            logger.error("Got more alignment than expected for {result.id}")
+
+            # write an empty row
+            line = [
+                result.id, 0, 0, None, iln_snp, None, iln_strand, None,
+                None, None]
+            logger.debug(f"Writing {line}")
+            writer.writerow(line)
+
+            # skip processing
+            continue
 
         for i, hit in enumerate(filtered.hits):
             logger.debug(f"Processing hit {i}: {hit.id} for {result.id}")
@@ -228,6 +259,7 @@ if __name__ == '__main__':
                     result.id, chrom, ref_pos+1, alleles, iln_snp,
                     get_illumina_forward(iln_snp, orient), iln_strand, orient,
                     ref_allele, alt_allele]
+                logger.debug(f"Writing {line}")
                 writer.writerow(line)
 
                 # annotate alignment
