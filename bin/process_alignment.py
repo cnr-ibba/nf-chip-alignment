@@ -101,56 +101,6 @@ def parse_chromosome(sequence):
     return chrom
 
 
-def process_result(result, genome_sequences):
-    """Process a single QueryResult"""
-
-    # hit represents a single database hit
-    logger.debug(f"Got {len(result.hits)} hits for {result.id}")
-
-    # filter results by score (query aligned)
-    def filter_hsps(hsp):
-        if hsp.is_fragmented:
-            logger.debug(
-                f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
-                f"Found {len(hsp.fragments)} fragments"
-            )
-            return False
-
-        if hsp.score < result.seq_len * 0.9:
-            logger.debug(
-                f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
-                f"Bad Score: {hsp.score} (ident_pct {hsp.ident_pct})"
-            )
-            return False
-
-        return True
-
-    filtered = result.hsp_filter(filter_hsps)
-
-    logger.debug(f"Got {len(filtered.hits)} hits after filtering")
-
-    for i, hit in enumerate(filtered.hits):
-        logger.debug(f"Processing hit {i}: {hit.id} for {result.id}")
-
-        chr_sequence = genome_sequences[hit.id]
-
-        # attempt to determine chromosome name
-        chrom = parse_chromosome(chr_sequence)
-
-        logger.debug(f"Detected chromosome for {hit.id} is {chrom}")
-
-        # hsp represents region(s) of significant alignments between
-        # query and hit sequences
-        logger.debug(f"Got {len(hit.hsps)} hsp for {hit.id}")
-
-        for j, hsp in enumerate(hit.hsps):
-            logger.debug(
-                f"Hsp {j}: has {len(hsp.fragments)} fragments. "
-                f"Query range {hsp.query_range_all} ({hsp.query_strand_all}), "
-                f"Hit range {hsp.hit_range_all} ({hsp.hit_strand_all}), "
-                f"Score {hsp.score}, ident_pct {hsp.ident_pct}")
-
-
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.DEBUG, format=log_fmt)
@@ -192,28 +142,51 @@ if __name__ == '__main__':
         # hit represents a single database hit
         logger.debug(f"Got {len(result.hits)} hits for {result.id}")
 
-        if len(result.hits) > 1:
-            raise NotImplementedError("More than one hits!")
+        # filter results by score (query aligned)
+        def filter_hsps(hsp):
+            if hsp.is_fragmented:
+                logger.debug(
+                    f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
+                    f"Found {len(hsp.fragments)} fragments"
+                )
+                return False
 
-        for hit in result.hits:
-            logger.debug(f"Processing hit {hit.id} for {result.id}")
+            if hsp.score < result.seq_len * 0.9:
+                logger.debug(
+                    f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
+                    f"Bad Score: {hsp.score} (ident_pct {hsp.ident_pct})"
+                )
+                return False
+
+            return True
+
+        filtered = result.hsp_filter(filter_hsps)
+
+        logger.debug(f"Got {len(filtered.hits)} hits after filtering")
+
+        if len(filtered.hits) > 1 or len(filtered.hsps) > 1:
+            raise NotImplementedError("Got more alignment than expected")
+
+        for i, hit in enumerate(filtered.hits):
+            logger.debug(f"Processing hit {i}: {hit.id} for {result.id}")
 
             chr_sequence = genome_sequences[hit.id]
 
             # attempt to determine chromosome name
             chrom = parse_chromosome(chr_sequence)
 
+            logger.debug(f"Detected chromosome for {hit.id} is {chrom}")
+
             # hsp represents region(s) of significant alignments between
             # query and hit sequences
             logger.debug(f"Got {len(hit.hsps)} hsp for {hit.id}")
 
-            if len(hit.hsps) > 1:
-                raise NotImplementedError("More than one hsp!")
-
-            for hsp in hit.hsps:
+            for j, hsp in enumerate(hit.hsps):
                 logger.debug(
-                    f"Query range {hsp.query_range} ({hsp.query_strand}), "
-                    f"Hit range {hsp.hit_range} ({hsp.hit_strand}), "
+                    f"Hsp {j}: has {len(hsp.fragments)} fragments. "
+                    f"Query range {hsp.query_range_all} "
+                    f"({hsp.query_strand_all}), "
+                    f"Hit range {hsp.hit_range_all} ({hsp.hit_strand_all}), "
                     f"Score {hsp.score}, ident_pct {hsp.ident_pct}")
 
                 orient = check_strand(hsp)
