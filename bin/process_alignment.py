@@ -15,8 +15,7 @@ import Bio.SeqIO
 import Bio.SearchIO
 import Bio.AlignIO
 
-from helper import complement
-from helper.utils import text_or_gzip_open
+from helper.utils import complement, text_or_gzip_open
 
 logger = logging.getLogger(__name__)
 

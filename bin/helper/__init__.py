@@ -40,20 +40,3 @@ SNP2BASES = {
     'G/T': 'K',
     'T/G': 'K'
 }
-
-
-def complement(genotype: str):
-    bases = {
-        "A": "T",
-        "T": "A",
-        "C": "G",
-        "G": "C",
-        "/": "/"
-    }
-
-    result = ""
-
-    for base in genotype:
-        result += bases[base]
-
-    return result

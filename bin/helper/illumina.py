@@ -86,47 +86,6 @@ def sniff_file(handle, size, position=0):
     return csv.reader(handle, dialect=dialect)
 
 
-def read_snpMap(path: str, size=2048, skip=0, delimiter=None):
-    with open(path) as handle:
-        if delimiter:
-            reader = csv.reader(handle, delimiter=delimiter)
-
-        else:
-            if skip > 0:
-                skip_lines(handle, skip)
-
-            # try to determine dialect
-            reader = sniff_file(handle, size)
-
-        # get header
-        header = next(reader)
-
-        # sanitize column names
-        header = [sanitize(column) for column in header]
-
-        # define a datatype for my data
-        SnpMap = collections.namedtuple("SnpMap", header)
-
-        # add records to data
-        for record in reader:
-            # forcing data types
-            record[header.index('index')] = int(
-                record[header.index('index')])
-
-            record[header.index('position')] = int(
-                record[header.index('position')])
-
-            record[header.index('gentrain_score')] = float(
-                record[header.index('gentrain_score')])
-
-            record[header.index('normid')] = int(
-                record[header.index('normid')])
-
-            # convert into collection
-            record = SnpMap._make(record)
-            yield record
-
-
 def read_Manifest(path: str, size=2048, skip=0, delimiter=None):
     with text_or_gzip_open(path) as handle:
         if delimiter:
@@ -192,73 +151,6 @@ def read_Manifest(path: str, size=2048, skip=0, delimiter=None):
 
             # convert into collection
             record = SnpChip._make(record)
-            yield record
-
-
-def read_snpList(path: str, size=2048, skip=0, delimiter=None):
-    with text_or_gzip_open(path) as handle:
-        if delimiter:
-            reader = csv.reader(handle, delimiter=delimiter)
-
-        else:
-            if skip > 0:
-                skip_lines(handle, skip)
-
-            # try to determine dialect
-            reader = sniff_file(handle, size)
-
-        # get header
-        header = next(reader)
-
-        # sanitize column names
-        header = [sanitize(column) for column in header]
-
-        logger.info(header)
-
-        # define a datatype for my data
-        SnpList = collections.namedtuple("SnpList", header)
-
-        # add records to data
-        for record in reader:
-            # forcing data types
-            record[header.index('index')] = int(
-                record[header.index('index')])
-
-            record[header.index('position')] = int(
-                record[header.index('position')])
-
-            # drop brakets from SNP [A/G] -> A/G
-            record[header.index('snp')] = re.sub(
-                r'[\[\]]',
-                "",
-                record[header.index('snp')])
-
-            # convert into collection
-            record = SnpList._make(record)
-            yield record
-
-
-def read_illuminaRow(path: str, size=2048):
-    with text_or_gzip_open(path) as handle:
-        # search for [DATA] record
-        position, _ = skip_until_section(handle, "[Data]")
-
-        # try to determine dialect
-        reader = sniff_file(handle, size, position)
-
-        # get header
-        header = next(reader)
-
-        # sanitize column names
-        header = [sanitize(column) for column in header]
-
-        # define a datatype for my data
-        IlluminaRow = collections.namedtuple("IlluminaRow", header)
-
-        # add records to data
-        for record in reader:
-            # convert into collection
-            record = IlluminaRow._make(record)
             yield record
 
 
