@@ -119,7 +119,7 @@ class BlatResult():
                 )
                 return False
 
-            logger.info(
+            logger.debug(
                 f"Keeping {hsp.hit_id}:{hsp.hit_range_all}: "
                 f"Score: {hsp.score} (ident_pct {hsp.ident_pct})"
             )
@@ -139,12 +139,13 @@ class BlatResult():
 
         elif len(filtered.hits) > 1 or len(filtered.hsps) > 1:
             for hsp in filtered.hsps:
-                logger.warning(
+                logger.debug(
                     f"{hsp.hit_id}:{hsp.hit_range_all}: "
                     f"Score: {hsp.score} (ident_pct {hsp.ident_pct})"
                 )
             logger.warning(
-                f"Got more alignment than expected for {self.result.id}")
+                f"Got {len(filtered.hsps)} alignments after filtering for "
+                f"{self.result.id}")
 
             # set filtered as empty list
             self.filtered = []
@@ -182,11 +183,11 @@ class BlatResult():
             # attempt to determine chromosome name
             chrom = id2chromosome[hit.id]
 
-            logger.info(f"Detected chromosome for {hit.id} is {chrom}")
+            logger.info(f"Detected chromosome for {hit.id} is '{chrom}'")
 
             # hsp represents region(s) of significant alignments between
             # query and hit sequences
-            logger.info(f"Got {len(hit.hsps)} hsp for {hit.id}")
+            logger.debug(f"Got {len(hit.hsps)} hsp for {hit.id}")
 
             for j, hsp in enumerate(hit.hsps):
                 logger.info(

@@ -61,7 +61,7 @@ process PROCESSALIGNMENT {
         -a ${pslx} \\
         -c ${fasta} \\
         -g ${genome} \\
-        -o output.csv \\
-        --output_aln output.aln
+        -o ${fasta.baseName}-${genome.baseName}.csv \\
+        --output_aln ${fasta.baseName}-${genome.baseName}.aln
     """
 }

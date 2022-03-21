@@ -62,7 +62,7 @@ process UCSC_BLAT {
         $genome \\
         $fasta \\
         $args \\
-        output.pslx
+        ${fasta.baseName}-${genome.baseName}.pslx
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
