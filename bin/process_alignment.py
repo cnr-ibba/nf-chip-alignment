@@ -16,6 +16,7 @@ import Bio.SearchIO
 import Bio.AlignIO
 
 from helper import complement
+from helper.utils import text_or_gzip_open
 
 logger = logging.getLogger(__name__)
 
@@ -104,8 +105,9 @@ def parse_chromosome(sequence):
 def parse_chromosomes(genome_file):
     id2chromosome = {}
 
-    for sequence in Bio.SeqIO.parse(genome_file, "fasta"):
-        id2chromosome[sequence.id] = parse_chromosome(sequence)
+    with text_or_gzip_open(genome_file) as handle:
+        for sequence in Bio.SeqIO.parse(handle, "fasta"):
+            id2chromosome[sequence.id] = parse_chromosome(sequence)
 
     return id2chromosome
 
