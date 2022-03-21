@@ -80,6 +80,12 @@ class BlatResult():
             self.result = result
             self.snp_id = result.id
 
+    def __repr__(self):
+        return (
+            f"BlatResult: {self.snp_id}, iln_snp: {self.iln_snp}, "
+            f"iln_pos: {self.iln_pos}, iln_strand: {self.iln_strand} "
+            f"probe length {self.probe_len}")
+
     def read_sequence_manifest(self, sequence: SeqRecord):
         # collect SNP info
         self.iln_snp, self.iln_pos, self.iln_strand = parse_description(
@@ -195,14 +201,16 @@ class BlatResult():
 
                 # the SNP position in the alignment, supposing no gap in
                 # query sequence (mind to the query strand)
-                if hsp.query_strand > 1:
+                if hsp.query_strand > 0:
                     aln_pos = self.iln_pos - hsp.query_start - 1
                 else:
                     aln_pos = hsp.query_end - self.iln_pos
 
                 # check that is letter is a N
                 if hsp.aln[0][aln_pos].upper() != 'N':
-                    raise Exception("Cannot find the SNP in the alignment")
+                    logger.error(hsp.aln[:, aln_pos-5:aln_pos+6])
+                    raise Exception(
+                        f"Cannot find the SNP in position {aln_pos}")
 
                 ref_pos = hsp.hit_start + aln_pos
 
