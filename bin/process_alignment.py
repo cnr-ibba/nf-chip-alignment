@@ -87,7 +87,7 @@ def parse_chromosome(sequence):
     match_scaff = re.search("(scaffold_[0-9]+),", sequence.description)
     match_unknw = re.search("(unplaced_[0-9]+),", sequence.description)
 
-    chrom = hit.id
+    chrom = sequence.id
 
     if match_chrom:
         chrom = match_chrom.groups()[0]
@@ -101,6 +101,15 @@ def parse_chromosome(sequence):
     return chrom
 
 
+def parse_chromosomes(genome_file):
+    id2chromosome = {}
+
+    for sequence in Bio.SeqIO.parse(genome_file, "fasta"):
+        id2chromosome[sequence.id] = parse_chromosome(sequence)
+
+    return id2chromosome
+
+
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
@@ -108,8 +117,8 @@ if __name__ == '__main__':
     # read the chip fasta file
     chip_sequences = Bio.SeqIO.index(args.chip_sequence, "fasta")
 
-    # read the genome file
-    genome_sequences = Bio.SeqIO.index(args.genome_sequence, "fasta")
+    # get descriptions from genome file
+    id2chromosome = parse_chromosomes(args.genome_sequence)
 
     # open file for writing
     output_csv_fh = open(args.output_csv, "w")
@@ -168,7 +177,7 @@ if __name__ == '__main__':
 
         filtered = result.hsp_filter(filter_hsps)
 
-        logger.info(f"Got {len(filtered.hits)} hits after filtering")
+        logger.debug(f"Got {len(filtered.hits)} hits after filtering")
 
         if len(filtered.hits) == 0 or len(filtered.hsps) == 0:
             logger.warning(
@@ -206,10 +215,8 @@ if __name__ == '__main__':
         for i, hit in enumerate(filtered.hits):
             logger.info(f"Processing hit {i}: {hit.id} for {result.id}")
 
-            chr_sequence = genome_sequences[hit.id]
-
             # attempt to determine chromosome name
-            chrom = parse_chromosome(chr_sequence)
+            chrom = id2chromosome[hit.id]
 
             logger.info(f"Detected chromosome for {hit.id} is {chrom}")
 
