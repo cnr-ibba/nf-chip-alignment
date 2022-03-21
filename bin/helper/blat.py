@@ -91,7 +91,7 @@ class BlatResult():
             f"iln_pos: {self.iln_pos}, iln_strand: {self.iln_strand} "
             f"probe length {self.probe_len}")
 
-    def filter_results(self, lenth_pct=0.95, ident_pct=97):
+    def filter_results(self, lenth_pct=95, ident_pct=97):
         # hit represents a single database hit
         logger.debug(f"Got {len(self.result.hits)} hits for {self.result.id}")
 
@@ -105,7 +105,7 @@ class BlatResult():
                 return False
 
             # score is a function of probe length
-            if (hsp.score < self.probe_len * lenth_pct or
+            if (hsp.score < self.probe_len * lenth_pct / 100 or
                     hsp.ident_pct < ident_pct):
                 logger.debug(
                     f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "

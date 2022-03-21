@@ -21,7 +21,8 @@ from helper.utils import text_or_gzip_open
 logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(
-    description="Parse chip alignment file")
+    description="Parse chip alignment file",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument(
     "-a", "--alignment", required=True, help="Chip alignment file")
 parser.add_argument(
@@ -32,6 +33,12 @@ parser.add_argument(
     "--output_aln", required=False, help="Output alignment file")
 parser.add_argument(
     "-o", "--output_csv", required=True, help="Output CSV file")
+parser.add_argument(
+    "--lenth_pct", required=False, type=float, default=95,
+    help="Percentage of the query aligned")
+parser.add_argument(
+    "--ident_pct", required=False, type=float, default=97,
+    help="Percentage identities in alignment")
 args = parser.parse_args()
 
 
@@ -100,7 +107,8 @@ if __name__ == '__main__':
         result.read_sequence_manifest(snp_sequence)
 
         # filter alignments
-        result.filter_results()
+        result.filter_results(
+            lenth_pct=args.lenth_pct, ident_pct=args.ident_pct)
 
         # process SNP informations
         lines, alignments = result.process_alignments(id2chromosome)
