@@ -236,16 +236,21 @@ if __name__ == '__main__':
 
                 logger.info(f"Orient is '{orient}'")
 
-                # get REF sequence from reference genome
+                # the SNP position in the alignment, supposing no gap in
+                # query sequence (mind to the query strand)
+                if hsp.query_strand > 1:
+                    aln_pos = iln_pos - hsp.query_start - 1
+                else:
+                    aln_pos = hsp.query_end - iln_pos
 
-                # find 'n' position on query (where SNP is in alignment)
-                # is a 0 based position
-                aln_pos = hsp.query.seq.find('n')
+                # check that is letter is a N
+                if hsp.aln[0][aln_pos].upper() != 'N':
+                    raise Exception("Cannot find the SNP in the alignment")
 
                 ref_pos = hsp.hit_start + aln_pos
 
                 # this is 0-based index
-                ref_allele = chr_sequence[ref_pos].upper()
+                ref_allele = hsp.aln[1][aln_pos].upper()
 
                 logger.info(
                     f"Reference allele: {ref_allele} at "
