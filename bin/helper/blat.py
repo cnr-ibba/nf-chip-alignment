@@ -161,6 +161,7 @@ class BlatResult():
         self.lines, self.alignments = [], []
 
         if self.is_filtered and not self.filtered:
+            logger.warning(f"Discarding {self}")
             # return an empty row
             line = [
                 self.snp_id, 0, 0, None, self.iln_snp, None,
@@ -206,44 +207,56 @@ class BlatResult():
                 else:
                     aln_pos = hsp.query_end - self.iln_pos
 
+                # get and annotate alignment
+                alignment = hsp.aln
+                alignment[-1].id = "{0}:{1}-{2}".format(
+                    chrom,
+                    hsp.hit_range[0],
+                    hsp.hit_range[1])
+
                 # check that is letter is a N
-                if hsp.aln[0][aln_pos].upper() != 'N':
-                    logger.error(hsp.aln[:, aln_pos-5:aln_pos+6])
+                if alignment[0][aln_pos].upper() != 'N':
+                    logger.error(alignment[:, aln_pos-5:aln_pos+6])
                     raise Exception(
                         f"Cannot find the SNP in position {aln_pos}")
 
                 ref_pos = hsp.hit_start + aln_pos
 
                 # this is 0-based index
-                ref_allele = hsp.aln[1][aln_pos].upper()
+                ref_allele = alignment[1][aln_pos].upper()
 
                 logger.info(
                     f"Reference allele: {ref_allele} at "
                     f"{hit.id}:{ref_pos+1}"
                 )
 
-                alt_allele = get_alt_allele(
-                    self.iln_snp, ref_allele, orient)
+                try:
+                    alt_allele = get_alt_allele(
+                        self.iln_snp, ref_allele, orient)
 
-                logger.info(
-                    f"Alternative allele: {alt_allele} at "
-                    f"{hit.id}:{ref_pos+1}"
-                )
+                except ValueError:
+                    logger.warning(
+                        f"Cannot find alt_allele in illumina SNP: "
+                        f"'{ref_allele}' not in {self.iln_snp}")
+                    logger.warning(f"Discarding {self}")
 
-                # alleles a la NCBI
-                alleles = "/".join(sorted([ref_allele, alt_allele]))
+                    line = [
+                        self.snp_id, 0, 0, None, self.iln_snp, None,
+                        self.iln_strand, None, None, None]
 
-                # define a new data row. Mind to 1-based positions
-                line = [
-                    self.snp_id, chrom, ref_pos+1, alleles, self.iln_snp,
-                    get_illumina_forward(self.iln_snp, orient),
-                    self.iln_strand, orient, ref_allele, alt_allele]
+                else:
+                    logger.info(
+                        f"Alternative allele: {alt_allele} at "
+                        f"{hit.id}:{ref_pos+1}"
+                    )
 
-                # annotate alignment
-                alignment = hsp.aln
-                alignment[-1].id = "{0}:{1}-{2}".format(
-                    chrom,
-                    hsp.hit_range[0],
-                    hsp.hit_range[1])
+                    # alleles a la NCBI
+                    alleles = "/".join(sorted([ref_allele, alt_allele]))
+
+                    # define a new data row. Mind to 1-based positions
+                    line = [
+                        self.snp_id, chrom, ref_pos+1, alleles, self.iln_snp,
+                        get_illumina_forward(self.iln_snp, orient),
+                        self.iln_strand, orient, ref_allele, alt_allele]
 
                 yield line, alignment
