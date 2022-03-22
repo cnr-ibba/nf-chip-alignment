@@ -45,3 +45,13 @@ nextflow run cnr-ibba/nf-chip-alignment -resume -profile singularity --manifest 
 ```
 
 *gzipped* input files are supported.
+
+## About alignments
+
+Alignment are filtered relying *percentage aligned* and *percentage
+identiy*. A probe is considered unmapped if all alignments are filtered,
+if there are more than one alignment after filtering or if the SNP doesn't
+match to the reference genome. The last condition however is not correlated in
+a issue in alignment, however I could be difficult to join this particular SNP
+with other data or refer it to a reference SNP. For such reason SNP is discarded
+even if there's a perfect match of the probe
