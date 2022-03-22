@@ -69,6 +69,7 @@ class BlatResult():
     result = None
     filtered = None
     is_filtered = False
+    status = None
     snp_id = None
     iln_snp = None
     iln_pos = None
@@ -136,6 +137,7 @@ class BlatResult():
 
             # set filtered as empty list
             self.filtered = []
+            self.status = "No valid alignments after filtering"
 
         elif len(filtered.hits) > 1 or len(filtered.hsps) > 1:
             for hsp in filtered.hsps:
@@ -149,17 +151,19 @@ class BlatResult():
 
             # set filtered as empty list
             self.filtered = []
+            self.status = "Too many alignments after filtering"
 
         else:
             # track filtered entries
             self.filtered = filtered
+            self.status = "Found valid alignment after filtering"
 
         self.is_filtered = True
 
     def process_alignments(self, id2chromosome):
         """Returns an output record and the processed alignment"""
 
-        self.lines, self.alignments = [], []
+        self.lines, self.alignments, discarded_snps = [], [], []
 
         if self.is_filtered and not self.filtered:
             logger.warning(f"Discarding {self}")
@@ -169,14 +173,26 @@ class BlatResult():
                 self.iln_strand, None, None, None]
             self.lines = [line]
 
+            discarded_snps = [[
+                self.snp_id,
+                self.iln_snp,
+                self.iln_strand,
+                self.status]]
+
         else:
-            for line, alignment in self.__process_hits(id2chromosome):
+            for line, alignment, discarded in self.__process_hits(
+                    id2chromosome):
                 self.lines.append(line)
                 self.alignments.append(alignment)
 
-        return self.lines, self.alignments
+                if discarded:
+                    discarded_snps.append(discarded)
+
+        return self.lines, self.alignments, discarded_snps
 
     def __process_hits(self, id2chromosome):
+        discarded = []
+
         for i, hit in enumerate(self.filtered.hits):
             logger.info(f"Processing hit {i}: {hit.id} for {self.snp_id}")
 
@@ -240,10 +256,16 @@ class BlatResult():
                         f"Cannot find alt_allele in illumina SNP: "
                         f"'{ref_allele}' not in {self.iln_snp}")
                     logger.warning(f"Discarding {self}")
+                    self.status = "Allele doesn't match to reference"
 
                     line = [
                         self.snp_id, 0, 0, None, self.iln_snp, None,
                         self.iln_strand, None, None, None]
+                    discarded = [
+                        self.snp_id,
+                        self.iln_snp,
+                        self.iln_strand,
+                        self.status]
 
                 else:
                     logger.info(
@@ -260,4 +282,4 @@ class BlatResult():
                         get_illumina_forward(self.iln_snp, orient),
                         self.iln_strand, orient, ref_allele, alt_allele]
 
-                yield line, alignment
+                yield line, alignment, discarded

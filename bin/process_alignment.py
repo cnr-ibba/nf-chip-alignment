@@ -34,6 +34,9 @@ parser.add_argument(
 parser.add_argument(
     "-o", "--output_csv", required=True, help="Output CSV file")
 parser.add_argument(
+    "--error_csv", required=False,
+    help="SNP which can't be mapped for any reason")
+parser.add_argument(
     "--lenth_pct", required=False, type=float, default=95,
     help="Percentage of the query aligned")
 parser.add_argument(
@@ -86,9 +89,6 @@ if __name__ == '__main__':
     output_csv_fh = open(args.output_csv, "w")
     writer = csv.writer(output_csv_fh, delimiter=",", lineterminator="\n")
 
-    if args.output_aln:
-        output_aln_fh = open(args.output_aln, "w")
-
     header = [
         "snp_name", "chrom", "position", "alleles", "illumina",
         "illumina_forward", "illumina_strand", "strand",
@@ -96,6 +96,15 @@ if __name__ == '__main__':
     ]
 
     writer.writerow(header)
+
+    if args.output_aln:
+        output_aln_fh = open(args.output_aln, "w")
+
+    # track errors in a file
+    if args.error_csv:
+        error_csv_fh = open(args.error_csv, "w")
+        error = csv.writer(error_csv_fh, delimiter=",", lineterminator="\n")
+        error.writerow(["snp_name", "illumina", "illumina_strand", "reason"])
 
     for result in Bio.SearchIO.parse(args.alignment, "blat-psl", pslx=True):
         # result represent a single search query
@@ -111,7 +120,8 @@ if __name__ == '__main__':
             lenth_pct=args.lenth_pct, ident_pct=args.ident_pct)
 
         # process SNP informations
-        lines, alignments = result.process_alignments(id2chromosome)
+        lines, alignments, discarded_snps = result.process_alignments(
+            id2chromosome)
 
         for line in lines:
             logger.debug(f"Writing {line}")
@@ -122,6 +132,11 @@ if __name__ == '__main__':
             for aln in alignments:
                 Bio.AlignIO.write([aln], output_aln_fh, "clustal")
 
+        # write errors
+        if args.error_csv:
+            for discarded in discarded_snps:
+                error.writerow(discarded)
+
         # debug
         # break
 
@@ -129,3 +144,6 @@ if __name__ == '__main__':
 
     if args.output_aln:
         output_aln_fh.close()
+
+    if args.error_csv:
+        error_csv_fh.close()

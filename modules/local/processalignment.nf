@@ -43,6 +43,7 @@ process PROCESSALIGNMENT {
     // TODO nf-core: Named file extensions MUST be emitted for ALL output channels
     path "*.csv", emit: csv
     path "*.aln", emit: aln
+    path "*.err", emit: err
 
     script:
     def args = task.ext.args ?: ''
@@ -62,6 +63,7 @@ process PROCESSALIGNMENT {
         -c ${fasta} \\
         -g ${genome} \\
         -o ${fasta.baseName}-${genome.baseName}.csv \\
-        --output_aln ${fasta.baseName}-${genome.baseName}.aln
+        --output_aln ${fasta.baseName}-${genome.baseName}.aln \\
+        --error_csv ${fasta.baseName}-${genome.baseName}.err
     """
 }
