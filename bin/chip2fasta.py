@@ -29,7 +29,7 @@ args = parser.parse_args()
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    logging.basicConfig(level=logging.DEBUG, format=log_fmt)
+    logging.basicConfig(level=logging.INFO, format=log_fmt)
 
     logger.info(f"Opening '{args.output}' for writing")
     handle = open(args.output, "w")
@@ -42,6 +42,7 @@ if __name__ == '__main__':
         # read snp as illuSNP
         try:
             iln_snp = IlluSNP(record.sourceseq, max_iter=60)
+
         except IlluSNPException as exc:
             logger.warning(exc)
             logger.warning(

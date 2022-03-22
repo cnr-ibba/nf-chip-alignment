@@ -135,7 +135,7 @@ def read_Manifest(path: str, size=2048, skip=0, delimiter=None):
             match = re.search(SNP_PATTERN, sequence)
 
             if match is None:
-                logger.error(
+                logger.warning(
                     "Can't find a SNP in %s. No indels and only 2 "
                     "allelic SNPs are supported" % (sequence))
 
@@ -196,6 +196,9 @@ class IlluSNP():
 
     def fromSequence(self, sequence, max_iter=10):
         """Define a IlluSNP from a sequence"""
+
+        # mind to lower letters. Transform sequence in capital letters
+        sequence = sequence.upper()
 
         # call findSNP
         snp, pos = self.findSNP(sequence)
