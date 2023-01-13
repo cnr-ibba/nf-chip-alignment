@@ -133,7 +133,7 @@ class BlatResult():
 
         if len(filtered.hits) == 0 or len(filtered.hsps) == 0:
             logger.warning(
-                f"All alignements have been filtered out for {self.result.id}")
+                f"All alignments have been filtered out for {self.result.id}")
 
             # set filtered as empty list
             self.filtered = []

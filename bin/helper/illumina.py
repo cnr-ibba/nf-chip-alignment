@@ -10,10 +10,11 @@ import re
 import csv
 import logging
 import collections
+from typing import Tuple
 
 import Bio.Seq
 
-from .utils import sanitize, text_or_gzip_open
+from .utils import sanitize, text_or_gzip_open, complement
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ class IlluSNPException(Exception):
         return repr(self.value)
 
 
-def skip_lines(handle, skip) -> (int, list):
+def skip_lines(handle, skip) -> Tuple[int, list]:
     logger.info(f"Skipping {skip} lines")
 
     # track skipped lines
@@ -48,7 +49,7 @@ def skip_lines(handle, skip) -> (int, list):
     return position, skipped
 
 
-def skip_until_section(handle, section) -> (int, list):
+def skip_until_section(handle, section) -> Tuple[int, list]:
     """Ignore lines until a precise sections"""
 
     # track skipped lines
@@ -235,9 +236,9 @@ class IlluSNP():
                     break
 
             if n == max_iter and not self.isUnambiguous(pair):
-                raise IlluSNPException("Can't find unambiguous pair in %s "
-                                       "steps (%s)" % (
-                                               max_iter, sequence))
+                raise IlluSNPException(
+                    "Can't find unambiguous pair in %s "
+                    "steps (%s)" % (max_iter, sequence))
 
         # assign values
         self.sequence = sequence
@@ -270,8 +271,9 @@ class IlluSNP():
             else:
                 B, A = alleles
 
-            logger.debug("Found A. Set strand = '%s', A = '%s' B = '%s'" %
-                         (strand, A, B))
+            logger.debug(
+                "Found A. Set strand = '%s', A = '%s' B = '%s'" % (
+                    strand, A, B))
 
         # when one of the possible variations of the SNP is a thymine (T),
         # and the remaining variation is either a C or a G, the
@@ -288,8 +290,9 @@ class IlluSNP():
             else:
                 B, A = alleles
 
-            logger.debug("Found T. Set strand = '%s', A = '%s' B = '%s'" %
-                         (strand, A, B))
+            logger.debug(
+                "Found T. Set strand = '%s', A = '%s' B = '%s'" % (
+                    strand, A, B))
 
         return A, B, strand
 
@@ -363,24 +366,26 @@ class IlluSNP():
         return False
 
     def toTop(self):
-        """Convert a BOT snp into TOP"""
+        """Convert a BOT sequence into TOP"""
 
         logger.debug("Convert SNP into illumina top")
 
         if self.strand == "TOP":
             return self
 
-        # get rid of []
-        sequence = re.sub(r"[\[\]\/]", "", self.sequence)
+        # create a copy of the sequence without SNP
+        sequence = self.sequence.replace(f"[{self.snp}]", '')
 
         # get reverse complement of the sequence
         reverse = Bio.Seq.MutableSeq(sequence)
         reverse.reverse_complement()
 
-        # add []
-        reverse.insert(-self.pos[0], "]")
-        reverse.insert(-self.pos[0]-2, "/")
-        reverse.insert(-self.pos[0]-4, "[")
+        # snp need to be only complemented (is a SNP, not a sequence!)
+        snp = complement(self.snp)
+
+        # insert SNP into sequence
+        for i, char in enumerate(list(f"[{snp}]")):
+            reverse.insert(self.pos[0]+i, char)
 
         # convert into string, return a IlluSNP object
         return IlluSNP(str(reverse), max_iter=self.max_iter)

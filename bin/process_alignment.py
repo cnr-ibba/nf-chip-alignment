@@ -46,8 +46,8 @@ args = parser.parse_args()
 
 
 def parse_chromosome(sequence):
-    # try to determin chromosome name
-    match_chrom = re.search("chromosome (.*),", sequence.description)
+    # try to determine chromosome name
+    match_chrom = re.search("chromosome (\w*),", sequence.description)
     match_scaff = re.search("(scaffold_[0-9]+),", sequence.description)
     match_unknw = re.search("(unplaced_[0-9]+),", sequence.description)
 
