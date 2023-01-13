@@ -37,7 +37,8 @@ if __name__ == '__main__':
     for i, record in enumerate(read_Manifest(args.input, delimiter=",")):
         logger.debug("-------------------------------------------------------")
 
-        seq = Bio.Seq.Seq(record.sourceseq)
+        sequence = Bio.Seq.Seq(record.sourceseq)
+        logger.debug(f"Got record.sourceseq: {record.sourceseq}")
 
         # read snp as illuSNP
         try:
@@ -50,31 +51,29 @@ if __name__ == '__main__':
             continue
 
         logger.debug(
-            f"id: '{record.name}', iln_snp: {iln_snp.snp}, iln_strand: "
+            f"id: '{record.name}', iln_snp: {iln_snp.illumina}, iln_strand: "
             f"{iln_snp.strand}")
-
-        # logger.debug(f"topgenomicseq: {record.topgenomicseq}")
-        logger.debug(f"record.sourceseq: {seq}")
 
         # find SNP in sequence
         start, end = iln_snp.pos
 
-        logger.debug(f"found {iln_snp.snp} in {start}:{end}")
+        # this are the alleles in sequence fomatted like NCBI
+        logger.debug(f"found {iln_snp.alleles} in {start}:{end}")
 
-        # trasnform in a mutable object
-        seq = seq.tomutable()
+        # transform in a mutable object
+        sequence = sequence.tomutable()
 
-        # replace SNP with ambiguos code
-        seq[start:end] = SNP2BASES[iln_snp.snp]
+        # replace SNP with ambiguous code
+        sequence[start:end] = SNP2BASES[iln_snp.alleles]
 
         record = Bio.SeqRecord.SeqRecord(
             id=record.name,
             name=record.name,
             description=(
-                f"iln_snp: {iln_snp.snp}, iln_pos: {start+1}, "
+                f"iln_snp: {iln_snp.illumina}, iln_pos: {start+1}, "
                 f"iln_strand: {iln_snp.strand}"
             ),
-            seq=seq)
+            seq=sequence)
 
         Bio.SeqIO.write([record], handle, "fasta")
 
