@@ -38,10 +38,10 @@ parser.add_argument(
     help="SNP which can't be mapped for any reason")
 parser.add_argument(
     "--lenth_pct", required=False, type=float, default=95,
-    help="Percentage of the query aligned")
+    help="Percentage of the query aligned (default: %(default)s)")
 parser.add_argument(
     "--ident_pct", required=False, type=float, default=97,
-    help="Percentage identities in alignment")
+    help="Percentage identities in alignment (default: %(default)s)")
 args = parser.parse_args()
 
 
@@ -147,3 +147,6 @@ if __name__ == '__main__':
 
     if args.error_csv:
         error_csv_fh.close()
+
+    logger.info("-------------------------------------------------------")
+    logger.info("Done!")

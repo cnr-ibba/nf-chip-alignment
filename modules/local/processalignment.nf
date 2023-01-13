@@ -63,6 +63,7 @@ process PROCESSALIGNMENT {
         -c ${fasta} \\
         -g ${genome} \\
         -o ${fasta.baseName}-${genome.baseName}.csv \\
+        $args \\
         --output_aln ${fasta.baseName}-${genome.baseName}.aln \\
         --error_csv ${fasta.baseName}-${genome.baseName}.err
     """

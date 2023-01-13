@@ -129,7 +129,7 @@ class BlatResult():
 
         filtered = self.result.hsp_filter(filter_hsps)
 
-        logger.debug(f"Got {len(filtered.hits)} hits after filtering")
+        logger.info(f"Got {len(filtered.hits)} hits after filtering")
 
         if len(filtered.hits) == 0 or len(filtered.hsps) == 0:
             logger.warning(
