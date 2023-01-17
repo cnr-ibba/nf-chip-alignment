@@ -66,7 +66,7 @@ def get_illumina_forward(snp, orient):
 
 
 class BlatResult():
-    result = None
+    queryresult = None
     filtered = None
     is_filtered = False
     status = None
@@ -75,11 +75,12 @@ class BlatResult():
     iln_pos = None
     iln_strand = None
     probe_len = None
+    best_hit = None
 
-    def __init__(self, result: QueryResult = None):
-        if result:
-            self.result = result
-            self.snp_id = result.id
+    def __init__(self, queryresult: QueryResult = None):
+        if queryresult:
+            self.queryresult = queryresult
+            self.snp_id = queryresult.id
 
     def __repr__(self):
         return (
@@ -91,7 +92,7 @@ class BlatResult():
         # collect SNP info
         self.iln_snp, self.iln_pos, self.iln_strand = parse_description(
             sequence.description)
-        self.probe_len = self.result.seq_len
+        self.probe_len = self.queryresult.seq_len
 
         logger.info(
             f"Processing SNP: {self.snp_id}, iln_snp: {self.iln_snp}, "
@@ -99,8 +100,12 @@ class BlatResult():
             f"probe length {self.probe_len}")
 
     def filter_results(self, lenth_pct=95, ident_pct=97):
+        # reset best hsp
+        self.best_hit = None
+
         # hit represents a single database hit
-        logger.debug(f"Got {len(self.result.hits)} hits for {self.result.id}")
+        logger.debug(
+            f"Got {len(self.queryresult.hits)} hits for {self.queryresult.id}")
 
         # filter results by score (query aligned)
         def filter_hsps(hsp):
@@ -127,16 +132,15 @@ class BlatResult():
 
             return True
 
-        filtered = self.result.hsp_filter(filter_hsps)
+        filtered = self.queryresult.hsp_filter(filter_hsps)
 
         logger.info(f"Got {len(filtered.hits)} hits after filtering")
 
         if len(filtered.hits) == 0 or len(filtered.hsps) == 0:
             logger.warning(
-                f"All alignments have been filtered out for {self.result.id}")
+                f"All alignments have been filtered out for "
+                f"{self.queryresult.id}")
 
-            # set filtered as empty list
-            self.filtered = []
             self.status = "No valid alignments after filtering"
 
         elif len(filtered.hits) > 1 or len(filtered.hsps) > 1:
@@ -147,17 +151,15 @@ class BlatResult():
                 )
             logger.warning(
                 f"Got {len(filtered.hsps)} alignments after filtering for "
-                f"{self.result.id}")
+                f"{self.queryresult.id}")
 
-            # set filtered as empty list
-            self.filtered = []
             self.status = "Too many alignments after filtering"
 
         else:
-            # track filtered entries
-            self.filtered = filtered
+            self.best_hit = filtered[0]
             self.status = "Found valid alignment after filtering"
 
+        self.filtered = filtered
         self.is_filtered = True
 
     def process_alignments(self, id2chromosome):
@@ -165,7 +167,7 @@ class BlatResult():
 
         self.lines, self.alignments, discarded_snps = [], [], []
 
-        if self.is_filtered and not self.filtered:
+        if self.is_filtered and not self.best_hit:
             logger.warning(f"Discarding {self}")
             # return an empty row
             line = [

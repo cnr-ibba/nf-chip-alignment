@@ -42,7 +42,6 @@ parser.add_argument(
 parser.add_argument(
     "--ident_pct", required=False, type=float, default=97,
     help="Percentage identities in alignment (default: %(default)s)")
-args = parser.parse_args()
 
 
 def parse_chromosome(sequence):
@@ -78,6 +77,9 @@ def parse_chromosomes(genome_file):
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
+
+    # process received arguments
+    args = parser.parse_args()
 
     # read the chip fasta file
     chip_sequences = Bio.SeqIO.index(args.chip_sequence, "fasta")
