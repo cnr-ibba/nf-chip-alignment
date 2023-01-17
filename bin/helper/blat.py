@@ -162,6 +162,21 @@ class BlatResult():
         self.filtered = filtered
         self.is_filtered = True
 
+    def __discard_snp(self):
+        """Returns a record for a discarded snp"""
+
+            line = [
+                self.snp_id, 0, 0, None, self.iln_snp, None,
+                self.iln_strand, None, None, None]
+
+        discarded = [
+                self.snp_id,
+                self.iln_snp,
+                self.iln_strand,
+            self.status]
+
+        return line, discarded
+
     def process_alignments(self, id2chromosome):
         """Returns an output record and the processed alignment"""
 
@@ -169,17 +184,10 @@ class BlatResult():
 
         if self.is_filtered and not self.best_hit:
             logger.warning(f"Discarding {self}")
-            # return an empty row
-            line = [
-                self.snp_id, 0, 0, None, self.iln_snp, None,
-                self.iln_strand, None, None, None]
-            self.lines = [line]
-
-            discarded_snps = [[
-                self.snp_id,
-                self.iln_snp,
-                self.iln_strand,
-                self.status]]
+            # return an empty alignment
+            line, discarded = self.__discard_snp()
+            self.lines.append(line)
+            discarded_snps.append(discarded)
 
         else:
             for line, alignment, discarded in self.__process_hits(
@@ -222,9 +230,9 @@ class BlatResult():
                 # the SNP position in the alignment, supposing no gap in
                 # query sequence (mind to the query strand)
                 if hsp.query_strand > 0:
-                    aln_pos = self.iln_pos - hsp.query_start - 1
+                    snp_pos = self.iln_pos - hsp.query_start - 1
                 else:
-                    aln_pos = hsp.query_end - self.iln_pos
+                    snp_pos = hsp.query_end - self.iln_pos
 
                 # get and annotate alignment
                 alignment = hsp.aln
@@ -233,16 +241,26 @@ class BlatResult():
                     hsp.hit_range[0],
                     hsp.hit_range[1])
 
-                # check that is letter is a N
-                if alignment[0][aln_pos].upper() != 'N':
-                    logger.error(alignment[:, aln_pos-5:aln_pos+6])
-                    raise Exception(
-                        f"Cannot find the SNP in position {aln_pos}")
+                # check that SNP is in sequence
+                if (snp_pos > hsp.query_end) or (snp_pos < hsp.query_start):
+                    logger.error(
+                        f"Can't find {self.iln_snp} in alignment")
+                    logger.warning(f"Discarding {self}")
+                    self.status = f"Can't find {self.iln_snp} in alignment"
+                    line, discarded = self.__discard_snp()
+                    yield line, alignment, discarded
+                    continue
 
-                ref_pos = hsp.hit_start + aln_pos
+                # check that is letter is a N
+                if alignment[0][snp_pos].upper() != 'N':
+                    logger.error(alignment[:, snp_pos-5:snp_pos+6])
+                    raise Exception(
+                        f"Cannot find the SNP in position {snp_pos}")
+
+                ref_pos = hsp.hit_start + snp_pos
 
                 # this is 0-based index
-                ref_allele = alignment[1][aln_pos].upper()
+                ref_allele = alignment[1][snp_pos].upper()
 
                 logger.info(
                     f"Reference allele: {ref_allele} at "
@@ -259,15 +277,7 @@ class BlatResult():
                         f"'{ref_allele}' not in {self.iln_snp}")
                     logger.warning(f"Discarding {self}")
                     self.status = "Allele doesn't match to reference"
-
-                    line = [
-                        self.snp_id, 0, 0, None, self.iln_snp, None,
-                        self.iln_strand, None, None, None]
-                    discarded = [
-                        self.snp_id,
-                        self.iln_snp,
-                        self.iln_strand,
-                        self.status]
+                    line, discarded = self.__discard_snp()
 
                 else:
                     logger.info(
