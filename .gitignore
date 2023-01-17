@@ -166,3 +166,6 @@ cython_debug/
 # ignore output files
 *.2bit
 *.psl*
+
+# ignore other files
+*.txt

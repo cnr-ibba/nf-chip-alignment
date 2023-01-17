@@ -99,7 +99,7 @@ class BlatResult():
             f"iln_pos: {self.iln_pos}, iln_strand: {self.iln_strand} "
             f"probe length {self.probe_len}")
 
-    def filter_results(self, lenth_pct=95, ident_pct=97):
+    def filter_results(self, lenth_pct=60, ident_pct=97):
         # reset best hsp
         self.best_hit = None
 
@@ -149,11 +149,13 @@ class BlatResult():
                     f"{hsp.hit_id}:{hsp.hit_range_all}: "
                     f"Score: {hsp.score} (ident_pct {hsp.ident_pct})"
                 )
+
+            # try to sort and filter results
+            filtered = self.sort_filtered(filtered)
+
             logger.warning(
                 f"Got {len(filtered.hsps)} alignments after filtering for "
                 f"{self.queryresult.id}")
-
-            self.status = "Too many alignments after filtering"
 
         else:
             self.best_hit = filtered[0]
@@ -162,17 +164,53 @@ class BlatResult():
         self.filtered = filtered
         self.is_filtered = True
 
+    def sort_filtered(self, filtered):
+        """Attempt to sort HSPs and get the best alignment"""
+
+        # get first two HSPs
+        hsp1, hsp2, *_ = sorted(
+            filtered.hsps, key=lambda hsp: hsp.score, reverse=True)
+
+        if hsp1.score > hsp2.score:
+            def filter_hsps(hsp):
+                if hsp.score < hsp1.score:
+                    logger.debug(
+                        f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
+                        f"Bad Score: {hsp.score} (ident_pct {hsp.ident_pct})"
+                    )
+                    return False
+
+                logger.debug(
+                    f"Keeping {hsp.hit_id}:{hsp.hit_range_all}: "
+                    f"Score: {hsp.score} (ident_pct {hsp.ident_pct})"
+                )
+
+                return True
+
+            filtered = self.queryresult.hsp_filter(filter_hsps)
+
+            logger.info(f"Got {len(filtered.hits)} hits after sorting")
+
+        if len(filtered.hits) == 1 and len(filtered.hsps) == 1:
+            self.best_hit = filtered[0]
+            self.status = "Found valid alignment after filtering"
+
+        else:
+            self.status = "Too many alignments after filtering"
+
+        return filtered
+
     def __discard_snp(self):
         """Returns a record for a discarded snp"""
 
-            line = [
-                self.snp_id, 0, 0, None, self.iln_snp, None,
-                self.iln_strand, None, None, None]
+        line = [
+            self.snp_id, 0, 0, None, self.iln_snp, None,
+            self.iln_strand, None, None, None]
 
         discarded = [
-                self.snp_id,
-                self.iln_snp,
-                self.iln_strand,
+            self.snp_id,
+            self.iln_snp,
+            self.iln_strand,
             self.status]
 
         return line, discarded

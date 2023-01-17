@@ -37,7 +37,7 @@ parser.add_argument(
     "--error_csv", required=False,
     help="SNP which can't be mapped for any reason")
 parser.add_argument(
-    "--lenth_pct", required=False, type=float, default=95,
+    "--lenth_pct", required=False, type=float, default=60,
     help="Percentage of the query aligned (default: %(default)s)")
 parser.add_argument(
     "--ident_pct", required=False, type=float, default=97,
