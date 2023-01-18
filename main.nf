@@ -23,7 +23,7 @@ workflow {
     BLAST_MAKEBLASTDB(genome_ch)
     ch_versions = ch_versions.mix(BLAST_MAKEBLASTDB.out.versions)
 
-    manifest_ch.map{
+    MANIFEST2FASTA.out.fasta.map{
         fasta -> [[ id: fasta.baseName ], fasta]
     }.set{ blast_input }
 
