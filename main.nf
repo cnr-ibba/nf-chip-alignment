@@ -8,7 +8,7 @@ include { MANIFEST2FASTA } from './modules/local/manifest2fasta'
 include { UCSC_FATOTWOBIT } from './modules/local/ucsc/fatotwobit'
 include { UCSC_BLAT } from './modules/local/ucsc/blat'
 include { PROCESSALIGNMENT } from './modules/local/processalignment'
-include { CUSTOM_DUMPSOFTWAREVERSIONS } from './modules/nf-core/modules/custom/dumpsoftwareversions/main'
+include { CUSTOM_DUMPSOFTWAREVERSIONS } from './modules/nf-core/custom/dumpsoftwareversions/main'
 
 // get manifest from parameters
 manifest_ch = Channel.fromPath( params.manifest )
