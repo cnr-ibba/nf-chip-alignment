@@ -5,9 +5,9 @@ nextflow.enable.dsl = 2
 
 // include workflow dependencies from external modules
 include { MANIFEST2FASTA } from './modules/local/manifest2fasta'
-include { UCSC_FATOTWOBIT } from './modules/local/ucsc/fatotwobit'
-include { UCSC_BLAT } from './modules/local/ucsc/blat'
-include { PROCESSALIGNMENT } from './modules/local/processalignment'
+include { BLAST_MAKEBLASTDB } from './modules/nf-core/blast/makeblastdb/main'
+include { BLAST_BLASTN } from './modules/nf-core/blast/blastn/main'
+// include { PROCESSALIGNMENT } from './modules/local/processalignment'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from './modules/nf-core/custom/dumpsoftwareversions/main'
 
 // get manifest from parameters
@@ -20,15 +20,19 @@ workflow {
     // convert a manifest into fasta
     MANIFEST2FASTA(manifest_ch)
 
-    // database preparation
-    UCSC_FATOTWOBIT(genome_ch)
+    BLAST_MAKEBLASTDB(genome_ch)
+    ch_versions = ch_versions.mix(BLAST_MAKEBLASTDB.out.versions)
 
-    // probe alignment
-    UCSC_BLAT(MANIFEST2FASTA.out.fasta, UCSC_FATOTWOBIT.out.twobit)
+    manifest_ch.map{
+        fasta -> [[ id: fasta.baseName ], fasta]
+    }.set{ blast_input }
 
-    PROCESSALIGNMENT(MANIFEST2FASTA.out.fasta, genome_ch, UCSC_BLAT.out.pslx)
+    BLAST_BLASTN(blast_input, BLAST_MAKEBLASTDB.out.db)
+    ch_versions = ch_versions.mix(BLAST_BLASTN.out.versions)
 
-    ch_versions = ch_versions.mix(UCSC_BLAT.out.versions)
+    // PROCESSALIGNMENT(MANIFEST2FASTA.out.fasta, genome_ch, UCSC_BLAT.out.pslx)
+
+    // ch_versions = ch_versions.mix(UCSC_BLAT.out.versions)
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
