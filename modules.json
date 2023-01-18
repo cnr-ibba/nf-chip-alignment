@@ -1,10 +1,19 @@
 {
-    "name": "nf-chip-alignment",
+    "name": "cnr-ibba/nf-chip-alignment",
     "homePage": "https://github.com/cnr-ibba/nf-chip-alignment",
     "repos": {
-        "nf-core/modules": {
-            "custom/dumpsoftwareversions": {
-                "git_sha": "e745e167c1020928ef20ea1397b6b4d230681b4d"
+        "https://github.com/nf-core/modules.git": {
+            "modules": {
+                "nf-core": {
+                    "custom/dumpsoftwareversions": {
+                        "branch": "master",
+                        "git_sha": "82501fe6d0d12614db67751d30af98d16e63dc59",
+                        "installed_by": ["modules"]
+                    }
+                }
+            },
+            "subworkflows": {
+                "nf-core": {}
             }
         }
     }
