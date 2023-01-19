@@ -35,16 +35,13 @@ workflow {
         .splitFasta( by: 1000, file: true, elem: 1 )
         .map {
             fasta -> [[ id: fasta.baseName ], fasta ]
-        }
-        .set { chunks }
+        }.set { chunks }
 
     chunks.combine(BLAST_MAKEBLASTDB.out.db)
         .multiMap { record ->
             chunk: [record[0], record[1]]
             blast_db: record[2]
-        }.set {
-            blast_input
-        }
+        }.set { blast_input }
 
     BLAST_BLASTN(blast_input.chunk, blast_input.blast_db)
     ch_versions = ch_versions.mix(BLAST_BLASTN.out.versions)

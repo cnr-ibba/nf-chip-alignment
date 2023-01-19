@@ -1,6 +1,7 @@
 process BLAST_BLASTN {
     tag "$meta.id"
     label 'process_medium'
+    label 'error_retry'
 
     conda "bioconda::blast=2.12.0"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
