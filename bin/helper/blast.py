@@ -129,7 +129,7 @@ class BlastResult():
         # filter results by bitscore (query aligned)
         def filter_hsps(hsp):
             if hsp.is_fragmented:
-                logger.debug(
+                logger.warning(
                     f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
                     f"Found {len(hsp.fragments)} fragments"
                 )
@@ -248,9 +248,12 @@ class BlastResult():
                 # check snp position with IPAC ambiguity codes
                 if alignment[0][snp_pos].upper() != SNP2BASES[self.iln_snp]:
                     logger.error(alignment[:, snp_pos-5:snp_pos+6])
-                    # TODO: discard SNP
-                    raise Exception(
-                        f"Cannot find the SNP in position {snp_pos}")
+                    logger.error(f"Cannot find SNP in position {snp_pos}")
+                    logger.warning(f"Discarding {self}")
+                    self.status = f"Cannot find SNP in position {snp_pos}"
+                    line, discarded = self.__discard_snp()
+                    yield line, alignment, discarded
+                    continue
 
                 ref_pos = hsp.hit_start + snp_pos
 

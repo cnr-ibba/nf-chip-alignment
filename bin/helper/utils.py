@@ -70,7 +70,8 @@ def complement(genotype: str):
         "T": "A",
         "C": "G",
         "G": "C",
-        "/": "/"
+        "/": "/",
+        "-": "-"
     }
 
     result = ""
