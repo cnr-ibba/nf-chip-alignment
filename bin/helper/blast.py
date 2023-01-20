@@ -46,18 +46,21 @@ def rename_hit(hit):
 
 
 def check_strand(hsp):
-    if hsp.hit_strand < 0:
-        raise NotImplementedError("Reversed hit strand not yet managed")
+    """Return orient respect to the hit_strand"""
 
-    if hsp.query_strand > 0:
+    orient = hsp.query_strand * hsp.hit_strand
+
+    if orient > 0:
         return "forward"
 
     else:
         return "reverse"
 
 
-def get_alt_allele(snp, ref, orient):
+def get_alt_allele(snp, ref, hsp):
     """Get ALT allele giving the ref and orientation"""
+
+    orient = check_strand(hsp)
 
     if orient == 'reverse':
         snp = complement(snp)
@@ -93,7 +96,7 @@ class BlastResult():
     status = None
 
     def __init__(self, queryresult: QueryResult = None):
-        if queryresult:
+        if queryresult is not None:
             self._parse_queryresult(queryresult)
 
     def _parse_queryresult(self, queryresult):
@@ -104,7 +107,10 @@ class BlastResult():
         self.probe_len = queryresult.seq_len
 
         # parse chromosome names and change ids
-        self.queryresult = queryresult.hit_map(rename_hit)
+        if queryresult.hits:
+            queryresult = queryresult.hit_map(rename_hit)
+
+        self.queryresult = queryresult
 
     def __repr__(self):
         return (
@@ -239,9 +245,10 @@ class BlastResult():
                     yield line, alignment, discarded
                     continue
 
-                # check that is letter is a N
+                # check snp position with IPAC ambiguity codes
                 if alignment[0][snp_pos].upper() != SNP2BASES[self.iln_snp]:
                     logger.error(alignment[:, snp_pos-5:snp_pos+6])
+                    # TODO: discard SNP
                     raise Exception(
                         f"Cannot find the SNP in position {snp_pos}")
 
@@ -250,6 +257,10 @@ class BlastResult():
                 # this is 0-based index
                 ref_allele = alignment[1][snp_pos].upper()
 
+                # mind to reference strand
+                if hsp.hit_strand < 0:
+                    ref_allele = complement(ref_allele)
+
                 logger.info(
                     f"Reference allele: {ref_allele} at "
                     f"{hit.id}:{ref_pos+1}"
@@ -257,7 +268,7 @@ class BlastResult():
 
                 try:
                     alt_allele = get_alt_allele(
-                        self.iln_snp, ref_allele, orient)
+                        self.iln_snp, ref_allele, hsp)
 
                 except ValueError:
                     logger.warning(
