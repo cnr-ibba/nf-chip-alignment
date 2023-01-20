@@ -6,7 +6,6 @@ Created on Mon Mar 14 16:56:04 2022
 @author: Paolo Cozzi <bunop@libero.it>
 """
 
-import re
 import csv
 import logging
 import argparse
@@ -15,8 +14,7 @@ import Bio.SeqIO
 import Bio.SearchIO
 import Bio.AlignIO
 
-from helper.blat import BlatResult
-from helper.utils import text_or_gzip_open
+from helper.blast import BlastResult
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +23,6 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument(
     "-a", "--alignment", required=True, help="Chip alignment file")
-parser.add_argument(
-    "-c", "--chip_sequence", required=True, help="Chip fasta file")
-parser.add_argument(
-    "-g", "--genome_sequence", required=True, help="Genome fasta file")
 parser.add_argument(
     "--output_aln", required=False, help="Output alignment file")
 parser.add_argument(
@@ -44,48 +38,12 @@ parser.add_argument(
     help="Percentage identities in alignment (default: %(default)s)")
 
 
-def parse_chromosome(sequence):
-    # try to determine chromosome name
-    match_chrom = re.search("chromosome (\w*),", sequence.description)
-    match_scaff = re.search("(scaffold_[0-9]+),", sequence.description)
-    match_unknw = re.search("(unplaced_[0-9]+),", sequence.description)
-
-    chrom = sequence.id
-
-    if match_chrom:
-        chrom = match_chrom.groups()[0]
-
-    elif match_scaff:
-        chrom = match_scaff.groups()[0]
-
-    elif match_unknw:
-        chrom = match_unknw.groups()[0]
-
-    return chrom
-
-
-def parse_chromosomes(genome_file):
-    id2chromosome = {}
-
-    with text_or_gzip_open(genome_file) as handle:
-        for sequence in Bio.SeqIO.parse(handle, "fasta"):
-            id2chromosome[sequence.id] = parse_chromosome(sequence)
-
-    return id2chromosome
-
-
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
     # process received arguments
     args = parser.parse_args()
-
-    # read the chip fasta file
-    chip_sequences = Bio.SeqIO.index(args.chip_sequence, "fasta")
-
-    # get descriptions from genome file
-    id2chromosome = parse_chromosomes(args.genome_sequence)
 
     # open file for writing
     output_csv_fh = open(args.output_csv, "w")
@@ -108,22 +66,17 @@ if __name__ == '__main__':
         error = csv.writer(error_csv_fh, delimiter=",", lineterminator="\n")
         error.writerow(["snp_name", "illumina", "illumina_strand", "reason"])
 
-    for result in Bio.SearchIO.parse(args.alignment, "blat-psl", pslx=True):
+    for result in Bio.SearchIO.parse(args.alignment, "blast-xml"):
         # result represent a single search query
         logger.info("-------------------------------------------------------")
-        result = BlatResult(result)
-
-        # collect SNP info
-        snp_sequence = chip_sequences[result.snp_id]
-        result.read_sequence_manifest(snp_sequence)
+        result = BlastResult(result)
 
         # filter alignments
         result.filter_results(
             lenth_pct=args.lenth_pct, ident_pct=args.ident_pct)
 
         # process SNP informations
-        lines, alignments, discarded_snps = result.process_alignments(
-            id2chromosome)
+        lines, alignments, discarded_snps = result.process_alignments()
 
         for line in lines:
             logger.debug(f"Writing {line}")
