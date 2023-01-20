@@ -8,7 +8,7 @@ include { MANIFEST2FASTA } from './modules/local/manifest2fasta'
 include { TABIX_BGZIP } from './modules/nf-core/tabix/bgzip/main'
 include { BLAST_MAKEBLASTDB } from './modules/nf-core/blast/makeblastdb/main'
 include { BLAST_BLASTN } from './modules/nf-core/blast/blastn/main'
-// include { PROCESSALIGNMENT } from './modules/local/processalignment'
+include { PROCESSALIGNMENT } from './modules/local/processalignment'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from './modules/nf-core/custom/dumpsoftwareversions/main'
 
 // get manifest from parameters
@@ -46,9 +46,25 @@ workflow {
     BLAST_BLASTN(blast_input.chunk, blast_input.blast_db)
     ch_versions = ch_versions.mix(BLAST_BLASTN.out.versions)
 
-    // PROCESSALIGNMENT(MANIFEST2FASTA.out.fasta, genome_ch, UCSC_BLAT.out.pslx)
+    PROCESSALIGNMENT(BLAST_BLASTN.out.txt)
 
-    // ch_versions = ch_versions.mix(UCSC_BLAT.out.versions)
+    PROCESSALIGNMENT.out.csv.collectFile(
+        name: "results.csv",
+        storeDir: "${params.outdir}/chip_aligned",
+        keepHeader: true,
+    )
+
+    PROCESSALIGNMENT.out.aln.collectFile(
+        name: "results.aln",
+        storeDir: "${params.outdir}/chip_aligned",
+        keepHeader: false,
+    )
+
+    PROCESSALIGNMENT.out.err.collectFile(
+        name: "results.err",
+        storeDir: "${params.outdir}/chip_aligned",
+        keepHeader: true,
+    )
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')

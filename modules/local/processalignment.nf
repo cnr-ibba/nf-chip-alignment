@@ -16,8 +16,8 @@
 //               list (`[]`) instead of a file can be used to work around this issue.
 
 process PROCESSALIGNMENT {
-    tag "$pslx"
-    label 'process_low'
+    tag "$meta.id"
+    label 'process_single'
 
     // TODO nf-core: List required Conda package(s).
     //               Software MUST be pinned to channel (i.e. "bioconda"), version (i.e. "1.10").
@@ -35,9 +35,7 @@ process PROCESSALIGNMENT {
     //               https://github.com/nf-core/modules/blob/master/modules/bwa/index/main.nf
     // TODO nf-core: Where applicable please provide/convert compressed files as input/output
     //               e.g. "*.fastq.gz" and NOT "*.fastq", "*.bam" and NOT "*.sam" etc.
-    path fasta
-    path genome
-    path pslx
+    tuple val(meta), path(txt)
 
     output:
     // TODO nf-core: Named file extensions MUST be emitted for ALL output channels
@@ -47,7 +45,7 @@ process PROCESSALIGNMENT {
 
     script:
     def args = task.ext.args ?: ''
-
+    def prefix = task.ext.prefix ?: "${meta.id}"
     // TODO nf-core: Where possible, a command MUST be provided to obtain the version number of the software e.g. 1.10
     //               If the software is unable to output a version number on the command-line then it can be manually specified
     //               e.g. https://github.com/nf-core/modules/blob/master/modules/homer/annotatepeaks/main.nf
@@ -59,12 +57,10 @@ process PROCESSALIGNMENT {
     // TODO nf-core: Please indent the command appropriately (4 spaces!!) to help with readability ;)
     """
     process_alignment.py \\
-        -a ${pslx} \\
-        -c ${fasta} \\
-        -g ${genome} \\
-        -o ${fasta.baseName}-${genome.baseName}.csv \\
+        -a ${txt} \\
+        -o ${prefix}.csv \\
         $args \\
-        --output_aln ${fasta.baseName}-${genome.baseName}.aln \\
-        --error_csv ${fasta.baseName}-${genome.baseName}.err
+        --output_aln ${prefix}.aln \\
+        --error_csv ${prefix}.err
     """
 }
