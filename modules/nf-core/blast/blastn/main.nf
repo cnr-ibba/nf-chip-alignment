@@ -1,6 +1,6 @@
 process BLAST_BLASTN {
     tag "$meta.id"
-    label 'process_medium'
+    label 'process_high'
     label 'error_retry'
 
     conda "bioconda::blast=2.12.0"
@@ -10,7 +10,7 @@ process BLAST_BLASTN {
 
     input:
     tuple val(meta), path(fasta)
-    path  db
+    tuple val(db_meta), path(db)
 
     output:
     tuple val(meta), path('*.blastn.txt'), emit: txt
@@ -21,7 +21,7 @@ process BLAST_BLASTN {
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}-${db_meta.id}"
     """
     DB=`find -L ./ -name "*.ndb" | sed 's/\\.ndb\$//'`
     blastn \\

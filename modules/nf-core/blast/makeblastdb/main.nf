@@ -8,11 +8,11 @@ process BLAST_MAKEBLASTDB {
         'quay.io/biocontainers/blast:2.12.0--pl5262h3289130_0' }"
 
     input:
-    path fasta
+    tuple val(meta), path(fasta)
 
     output:
-    path 'blast_db'     , emit: db
-    path "versions.yml" , emit: versions
+    tuple val(meta), path(blast_db), emit: db
+    path "versions.yml"            , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
