@@ -30,20 +30,11 @@ workflow {
     // convert a manifest into fasta
     MANIFEST2FASTA(manifest_ch)
 
-    // split fasta input file in chunks
-    MANIFEST2FASTA.out.fasta
-        .splitFasta( by: 1000, file: true, elem: 1 )
-        .map {
-            fasta -> [[ id: fasta.baseName ], fasta ]
-        }.set { chunks }
+    MANIFEST2FASTA.out.fasta.map{
+        fasta -> [[ id: fasta.baseName ], fasta]
+    }.set{ blast_input }
 
-    chunks.combine(BLAST_MAKEBLASTDB.out.db)
-        .multiMap { record ->
-            chunk: [record[0], record[1]]
-            blast_db: record[2]
-        }.set { blast_input }
-
-    BLAST_BLASTN(blast_input.chunk, blast_input.blast_db)
+    BLAST_BLASTN(blast_input, BLAST_MAKEBLASTDB.out.db)
     ch_versions = ch_versions.mix(BLAST_BLASTN.out.versions)
 
     PROCESSALIGNMENT(BLAST_BLASTN.out.txt)
