@@ -39,24 +39,6 @@ workflow {
 
     PROCESSALIGNMENT(BLAST_BLASTN.out.txt)
 
-    PROCESSALIGNMENT.out.csv.collectFile(
-        name: "results.csv",
-        storeDir: "${params.outdir}/chip_aligned",
-        keepHeader: true,
-    )
-
-    PROCESSALIGNMENT.out.aln.collectFile(
-        name: "results.aln",
-        storeDir: "${params.outdir}/chip_aligned",
-        keepHeader: false,
-    )
-
-    PROCESSALIGNMENT.out.err.collectFile(
-        name: "results.err",
-        storeDir: "${params.outdir}/chip_aligned",
-        keepHeader: true,
-    )
-
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
