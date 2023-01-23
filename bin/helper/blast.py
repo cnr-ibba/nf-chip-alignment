@@ -204,6 +204,34 @@ class BlastResult():
 
         return line, discarded
 
+    def __find_snp_pos(self, hsp):
+        """Search SNP in alignment query. Return 1-based position"""
+        # the SNP position in the alignment (mind to the query strand)
+        if hsp.query_strand > 0:
+            snp_pos = self.iln_pos - hsp.query_start - 1
+
+            # test for gapped probes
+            idx = hsp.query.seq.find(SNP2BASES[self.iln_snp])
+            gaps = hsp.query.seq.count("-", 0, idx)
+
+            # adjust snp_pos
+            snp_pos += gaps
+
+        else:
+            snp_pos = hsp.query_end - self.iln_pos
+
+            # test for gapped probes
+            idx = hsp.query.seq.find(SNP2BASES[self.iln_snp])
+            gaps = hsp.query.seq.count("-", idx)
+
+            # adjust snp_pos
+            snp_pos -= gaps
+
+            # TODO: remove this check
+            raise Exception(f"found gap right to the SNP {self.snp_id}")
+
+        return snp_pos
+
     def __process_hits(self):
         discarded = []
 
@@ -227,12 +255,7 @@ class BlastResult():
 
                 logger.info(f"Orient is '{orient}'")
 
-                # the SNP position in the alignment, supposing no gap in
-                # query sequence (mind to the query strand)
-                if hsp.query_strand > 0:
-                    snp_pos = self.iln_pos - hsp.query_start - 1
-                else:
-                    snp_pos = hsp.query_end - self.iln_pos
+                snp_pos = self.__find_snp_pos(hsp)
 
                 # get and annotate alignment
                 alignment = hsp.aln
