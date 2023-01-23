@@ -10,6 +10,8 @@ import re
 import logging
 
 from Bio.SearchIO._model.query import QueryResult
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 from . import SNP2BASES
 from .utils import complement
@@ -139,13 +141,15 @@ class BlastResult():
                     hsp.ident_num / self.probe_len < ident_pct / 100):
                 logger.debug(
                     f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
-                    f"Bad Score: {hsp.bitscore} (ident_pct {hsp.ident_num})"
+                    f"Bad Score: {hsp.bitscore} (ident_pct: "
+                    f"{hsp.ident_num / self.probe_len * 100})"
                 )
                 return False
 
             logger.debug(
                 f"Keeping {hsp.hit_id}:{hsp.hit_range_all}: "
-                f"Score: {hsp.bitscore} (ident_pct {hsp.ident_num})"
+                f"Score: {hsp.bitscore} (ident_pct: "
+                f"{hsp.ident_num / self.probe_len * 100})"
             )
 
             return True
@@ -165,7 +169,8 @@ class BlastResult():
             for hsp in filtered.hsps:
                 logger.debug(
                     f"{hsp.hit_id}:{hsp.hit_range_all}: "
-                    f"Score: {hsp.bitscore} (ident_pct {hsp.ident_num})"
+                    f"Score: {hsp.bitscore} (ident_pct: "
+                    f"{hsp.ident_num / self.probe_len * 100})"
                 )
 
             self.status = "Too many alignments after filtering"
@@ -215,7 +220,8 @@ class BlastResult():
                     f"Query range {hsp.query_range_all} "
                     f"({hsp.query_strand_all}), "
                     f"Hit range {hsp.hit_range_all} ({hsp.hit_strand_all}), "
-                    f"Score {hsp.bitscore}, ident_pct {hsp.ident_num}")
+                    f"Score {hsp.bitscore}, ident_pct "
+                    f"{hsp.ident_num / self.probe_len * 100}")
 
                 orient = check_strand(hsp)
 
@@ -234,6 +240,11 @@ class BlastResult():
                     hit.id,
                     hsp.hit_range[0],
                     hsp.hit_range[1])
+
+                # add the similarity annotation
+                annotation = SeqRecord(
+                    Seq(hsp.aln_annotation['similarity']), id='')
+                alignment.append(annotation)
 
                 # check that SNP is in sequence
                 if (snp_pos > hsp.query_end) or (snp_pos < hsp.query_start):
@@ -258,7 +269,7 @@ class BlastResult():
                 if hsp.hit_strand > 0:
                     ref_pos = hsp.hit_start + snp_pos
                 else:
-                    ref_pos = hsp.hit_end - snp_pos -1
+                    ref_pos = hsp.hit_end - snp_pos - 1
 
                 # this is 0-based index
                 ref_allele = alignment[1][snp_pos].upper()
