@@ -255,7 +255,10 @@ class BlastResult():
                     yield line, alignment, discarded
                     continue
 
-                ref_pos = hsp.hit_start + snp_pos
+                if hsp.hit_strand > 0:
+                    ref_pos = hsp.hit_start + snp_pos
+                else:
+                    ref_pos = hsp.hit_end - snp_pos -1
 
                 # this is 0-based index
                 ref_allele = alignment[1][snp_pos].upper()
