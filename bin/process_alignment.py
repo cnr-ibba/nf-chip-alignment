@@ -15,8 +15,7 @@ import Bio.SeqIO
 import Bio.SearchIO
 import Bio.AlignIO
 
-from helper.blat import BlatResult
-from helper.utils import text_or_gzip_open
+from helper.blat import BlatResult, parse_chromosomes
 
 logger = logging.getLogger(__name__)
 
@@ -42,36 +41,6 @@ parser.add_argument(
 parser.add_argument(
     "--ident_pct", required=False, type=float, default=97,
     help="Percentage identities in alignment (default: %(default)s)")
-
-
-def parse_chromosome(sequence):
-    # try to determine chromosome name
-    match_chrom = re.search("chromosome (\w*),", sequence.description)
-    match_scaff = re.search("(scaffold_[0-9]+),", sequence.description)
-    match_unknw = re.search("(unplaced_[0-9]+),", sequence.description)
-
-    chrom = sequence.id
-
-    if match_chrom:
-        chrom = match_chrom.groups()[0]
-
-    elif match_scaff:
-        chrom = match_scaff.groups()[0]
-
-    elif match_unknw:
-        chrom = match_unknw.groups()[0]
-
-    return chrom
-
-
-def parse_chromosomes(genome_file):
-    id2chromosome = {}
-
-    with text_or_gzip_open(genome_file) as handle:
-        for sequence in Bio.SeqIO.parse(handle, "fasta"):
-            id2chromosome[sequence.id] = parse_chromosome(sequence)
-
-    return id2chromosome
 
 
 if __name__ == '__main__':

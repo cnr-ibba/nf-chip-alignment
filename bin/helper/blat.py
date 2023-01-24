@@ -8,17 +8,47 @@ Created on Mon Mar 21 13:59:36 2022
 
 import re
 import logging
+import Bio.SeqIO
 
 from Bio.SearchIO._model.query import QueryResult
 from Bio.SeqRecord import SeqRecord
 
-from .utils import complement
+from .utils import complement, text_or_gzip_open
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
 manifest_pattern = re.compile(
     ".* iln_snp: (.*), iln_pos: (.*), iln_strand: (.*)")
+
+
+def parse_chromosomes(genome_file):
+    id2chromosome = {}
+
+    def parse_chromosome(sequence):
+        # try to determine chromosome name
+        match_chrom = re.search("chromosome (\w*),", sequence.description)
+        match_scaff = re.search("(scaffold_[0-9]+),", sequence.description)
+        match_unknw = re.search("(unplaced_[0-9]+),", sequence.description)
+
+        chrom = sequence.id
+
+        if match_chrom:
+            chrom = match_chrom.groups()[0]
+
+        elif match_scaff:
+            chrom = match_scaff.groups()[0]
+
+        elif match_unknw:
+            chrom = match_unknw.groups()[0]
+
+        return chrom
+
+    with text_or_gzip_open(genome_file) as handle:
+        for sequence in Bio.SeqIO.parse(handle, "fasta"):
+            id2chromosome[sequence.id] = parse_chromosome(sequence)
+
+    return id2chromosome
 
 
 def parse_description(description):
