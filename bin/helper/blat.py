@@ -27,9 +27,9 @@ def parse_chromosomes(genome_file):
 
     def parse_chromosome(sequence):
         # try to determine chromosome name
-        match_chrom = re.search("chromosome (\w*),", sequence.description)
-        match_scaff = re.search("(scaffold_[0-9]+),", sequence.description)
-        match_unknw = re.search("(unplaced_[0-9]+),", sequence.description)
+        match_chrom = re.search(r"chromosome (\w*),", sequence.description)
+        match_scaff = re.search(r"(scaffold_[0-9]+),", sequence.description)
+        match_unknw = re.search(r"(unplaced_[0-9]+),", sequence.description)
 
         chrom = sequence.id
 
@@ -68,8 +68,10 @@ def check_strand(hsp):
         return "reverse"
 
 
-def get_alt_allele(snp, ref, orient):
-    """Get ALT allele giving the ref and orientation"""
+def get_alt_allele(snp, ref, hsp):
+    """Get ALT allele giving the ref and HSP"""
+
+    orient = check_strand(hsp)
 
     if orient == 'reverse':
         snp = complement(snp)
@@ -111,23 +113,23 @@ class BlatResult():
         if queryresult:
             self.queryresult = queryresult
             self.snp_id = queryresult.id
+            self.probe_len = self.queryresult.seq_len
 
     def __repr__(self):
         return (
             f"BlatResult: {self.snp_id}, iln_snp: {self.iln_snp}, "
-            f"iln_pos: {self.iln_pos}, iln_strand: {self.iln_strand} "
-            f"probe length {self.probe_len}")
+            f"iln_pos: {self.iln_pos}, iln_strand: {self.iln_strand}, "
+            f"probe_len: {self.probe_len}")
 
     def read_sequence_manifest(self, sequence: SeqRecord):
         # collect SNP info
         self.iln_snp, self.iln_pos, self.iln_strand = parse_description(
             sequence.description)
-        self.probe_len = self.queryresult.seq_len
 
         logger.info(
             f"Processing SNP: {self.snp_id}, iln_snp: {self.iln_snp}, "
             f"iln_pos: {self.iln_pos}, iln_strand: {self.iln_strand} "
-            f"probe length {self.probe_len}")
+            f"probe_len: {self.probe_len}")
 
     def filter_results(self, lenth_pct=60, ident_pct=97):
         # reset best hsp
@@ -140,7 +142,7 @@ class BlatResult():
         # filter results by score (query aligned)
         def filter_hsps(hsp):
             if hsp.is_fragmented:
-                logger.debug(
+                logger.warning(
                     f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
                     f"Found {len(hsp.fragments)} fragments"
                 )
@@ -151,13 +153,13 @@ class BlatResult():
                     hsp.ident_pct < ident_pct):
                 logger.debug(
                     f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
-                    f"Bad Score: {hsp.score} (ident_pct {hsp.ident_pct})"
+                    f"Bad Score: {hsp.score} (ident_pct: {hsp.ident_pct})"
                 )
                 return False
 
             logger.debug(
                 f"Keeping {hsp.hit_id}:{hsp.hit_range_all}: "
-                f"Score: {hsp.score} (ident_pct {hsp.ident_pct})"
+                f"Score: {hsp.score} (ident_pct: {hsp.ident_pct})"
             )
 
             return True
@@ -177,7 +179,7 @@ class BlatResult():
             for hsp in filtered.hsps:
                 logger.debug(
                     f"{hsp.hit_id}:{hsp.hit_range_all}: "
-                    f"Score: {hsp.score} (ident_pct {hsp.ident_pct})"
+                    f"Score: {hsp.score} (ident_pct: {hsp.ident_pct})"
                 )
 
             # try to sort and filter results
@@ -206,13 +208,13 @@ class BlatResult():
                 if hsp.score < hsp1.score:
                     logger.debug(
                         f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
-                        f"Bad Score: {hsp.score} (ident_pct {hsp.ident_pct})"
+                        f"Bad Score: {hsp.score} (ident_pct: {hsp.ident_pct})"
                     )
                     return False
 
                 logger.debug(
                     f"Keeping {hsp.hit_id}:{hsp.hit_range_all}: "
-                    f"Score: {hsp.score} (ident_pct {hsp.ident_pct})"
+                    f"Score: {hsp.score} (ident_pct: {hsp.ident_pct})"
                 )
 
                 return True
@@ -289,7 +291,7 @@ class BlatResult():
                     f"Query range {hsp.query_range_all} "
                     f"({hsp.query_strand_all}), "
                     f"Hit range {hsp.hit_range_all} ({hsp.hit_strand_all}), "
-                    f"Score {hsp.score}, ident_pct {hsp.ident_pct}")
+                    f"Score {hsp.score}, ident_pct: {hsp.ident_pct}")
 
                 orient = check_strand(hsp)
 
@@ -322,13 +324,24 @@ class BlatResult():
                 # check that is letter is a N
                 if alignment[0][snp_pos].upper() != 'N':
                     logger.error(alignment[:, snp_pos-5:snp_pos+6])
-                    raise Exception(
-                        f"Cannot find the SNP in position {snp_pos}")
+                    logger.error(f"Cannot find SNP in position {snp_pos}")
+                    logger.warning(f"Discarding {self}")
+                    self.status = f"Cannot find SNP in position {snp_pos}"
+                    line, discarded = self.__discard_snp()
+                    yield line, alignment, discarded
+                    continue
 
-                ref_pos = hsp.hit_start + snp_pos
+                if hsp.hit_strand > 0:
+                    ref_pos = hsp.hit_start + snp_pos
+                else:
+                    ref_pos = hsp.hit_end - snp_pos - 1
 
                 # this is 0-based index
                 ref_allele = alignment[1][snp_pos].upper()
+
+                # mind to reference strand
+                if hsp.hit_strand < 0:
+                    ref_allele = complement(ref_allele)
 
                 logger.info(
                     f"Reference allele: {ref_allele} at "
@@ -337,7 +350,7 @@ class BlatResult():
 
                 try:
                     alt_allele = get_alt_allele(
-                        self.iln_snp, ref_allele, orient)
+                        self.iln_snp, ref_allele, hsp)
 
                 except ValueError:
                     logger.warning(
@@ -363,3 +376,26 @@ class BlatResult():
                         self.iln_strand, orient, ref_allele, alt_allele]
 
                 yield line, alignment, discarded
+
+    def process_alignments(self, id2chromosome):
+        """Returns an output record and the processed alignment"""
+
+        self.lines, self.alignments, discarded_snps = [], [], []
+
+        if self.is_filtered and not self.best_hit:
+            logger.warning(f"Discarding {self}")
+            # return an empty alignment
+            line, discarded = self.__discard_snp()
+            self.lines.append(line)
+            discarded_snps.append(discarded)
+
+        else:
+            for line, alignment, discarded in self.__process_hits(
+                    id2chromosome):
+                self.lines.append(line)
+                self.alignments.append(alignment)
+
+                if discarded:
+                    discarded_snps.append(discarded)
+
+        return self.lines, self.alignments, discarded_snps
