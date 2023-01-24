@@ -142,7 +142,7 @@ class BlatResult():
         # filter results by score (query aligned)
         def filter_hsps(hsp):
             if hsp.is_fragmented:
-                logger.warning(
+                logger.debug(
                     f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
                     f"Found {len(hsp.fragments)} fragments"
                 )
@@ -247,29 +247,6 @@ class BlatResult():
 
         return line, discarded
 
-    def process_alignments(self, id2chromosome):
-        """Returns an output record and the processed alignment"""
-
-        self.lines, self.alignments, discarded_snps = [], [], []
-
-        if self.is_filtered and not self.best_hit:
-            logger.warning(f"Discarding {self}")
-            # return an empty alignment
-            line, discarded = self.__discard_snp()
-            self.lines.append(line)
-            discarded_snps.append(discarded)
-
-        else:
-            for line, alignment, discarded in self.__process_hits(
-                    id2chromosome):
-                self.lines.append(line)
-                self.alignments.append(alignment)
-
-                if discarded:
-                    discarded_snps.append(discarded)
-
-        return self.lines, self.alignments, discarded_snps
-
     def __process_hits(self, id2chromosome):
         discarded = []
 
@@ -352,10 +329,10 @@ class BlatResult():
                     alt_allele = get_alt_allele(
                         self.iln_snp, ref_allele, hsp)
 
-                except ValueError:
+                except ValueError as exc:
                     logger.warning(
                         f"Cannot find alt_allele in illumina SNP: "
-                        f"'{ref_allele}' not in {self.iln_snp}")
+                        f"'{exc}")
                     logger.warning(f"Discarding {self}")
                     self.status = "Allele doesn't match to reference"
                     line, discarded = self.__discard_snp()

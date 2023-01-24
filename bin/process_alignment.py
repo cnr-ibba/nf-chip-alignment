@@ -6,7 +6,6 @@ Created on Mon Mar 14 16:56:04 2022
 @author: Paolo Cozzi <bunop@libero.it>
 """
 
-import re
 import csv
 import logging
 import argparse
