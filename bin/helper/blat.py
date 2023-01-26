@@ -97,14 +97,41 @@ def get_illumina_forward(snp, orient):
     return snp
 
 
+def annotate_alignment(hsp: HSP, chrom: str):
+    """Annotate alignment with positions and chromosome names"""
+
+    alignment = hsp.aln
+    alignment[0].id = "{0}:{1}-{2}".format(
+        alignment[0].id,
+        hsp.query_range[0],
+        hsp.query_range[1])
+    alignment[1].id = "{0}:{1}-{2}".format(
+        chrom,
+        hsp.hit_range[0],
+        hsp.hit_range[1])
+
+    return alignment
+
+
+class BlatException(Exception):
+    """Base exception class for BlatResult"""
+
+    def __init__(self, value=None):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+
 class BlatResult():
     queryresult = None
     filtered = None
     is_filtered = False
+    got_manifest = False
     status = None
     snp_id = None
     iln_snp = None
-    iln_pos = None
+    iln_pos = None  # 1 based position
     iln_strand = None
     probe_len = None
     best_hit = None
@@ -140,14 +167,7 @@ class BlatResult():
             f"Got {len(self.queryresult.hits)} hits for {self.queryresult.id}")
 
         # filter results by score (query aligned)
-        def filter_hsps(hsp):
-            if hsp.is_fragmented:
-                logger.debug(
-                    f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
-                    f"Found {len(hsp.fragments)} fragments"
-                )
-                return False
-
+        def filter_hsps(hsp: HSP):
             # score is a function of probe length
             if (hsp.score < self.probe_len * lenth_pct / 100 or
                     hsp.ident_pct < ident_pct):
@@ -247,10 +267,27 @@ class BlatResult():
 
         return line, discarded
 
-    def __process_hits(self, id2chromosome):
-        discarded = []
+    def _search_fragment(self, hsp: HSP):
+        """Search for a SNP in HSP fragment"""
 
+        found = None
+
+        for fragment in hsp.fragments:
+            start, end = fragment.query_range
+            if self.iln_pos >= start and self.iln_pos <= end:
+                logger.info(f"found {self.iln_snp} in {fragment}")
+                found = fragment
+
+        if not found:
+            raise BlatException(f"Cannot find {self.iln_snp} in fragment")
+
+        return found
+
+    def __process_hits(self, id2chromosome: dict):
         for i, hit in enumerate(self.filtered.hits):
+            discarded = []
+            alignments = []
+
             logger.info(f"Processing hit {i}: {hit.id} for {self.snp_id}")
 
             # attempt to determine chromosome name
@@ -270,6 +307,21 @@ class BlatResult():
                     f"Hit range {hsp.hit_range_all} ({hsp.hit_strand_all}), "
                     f"Score {hsp.score}, ident_pct: {hsp.ident_pct}")
 
+                # manage fragmented HSP
+                if hsp.is_fragmented:
+                    try:
+                        hsp = self._search_fragment(hsp)
+                    except BlatException as exc:
+                        # process alignments
+                        for fragment in hsp.fragments:
+                            alignment = annotate_alignment(
+                                fragment, chrom)
+                            alignments.append(alignment)
+
+                        line, discarded = self.__discard_snp(exc)
+                        yield line, alignments, discarded
+                        continue
+
                 orient = check_strand(hsp)
 
                 logger.info(f"Orient is '{orient}'")
@@ -282,11 +334,8 @@ class BlatResult():
                     snp_pos = hsp.query_end - self.iln_pos
 
                 # get and annotate alignment
-                alignment = hsp.aln
-                alignment[-1].id = "{0}:{1}-{2}".format(
-                    chrom,
-                    hsp.hit_range[0],
-                    hsp.hit_range[1])
+                alignment = annotate_alignment(hsp, chrom)
+                alignments.append(alignment)
 
                 # check that SNP is in sequence
                 if (snp_pos > hsp.query_end) or (snp_pos < hsp.query_start):
@@ -352,7 +401,7 @@ class BlatResult():
                         get_illumina_forward(self.iln_snp, orient),
                         self.iln_strand, orient, ref_allele, alt_allele]
 
-                yield line, alignment, discarded
+                yield line, alignments, discarded
 
     def process_alignments(self, id2chromosome):
         """Returns an output record and the processed alignment"""
@@ -367,10 +416,10 @@ class BlatResult():
             discarded_snps.append(discarded)
 
         else:
-            for line, alignment, discarded in self.__process_hits(
+            for line, alignments, discarded in self.__process_hits(
                     id2chromosome):
                 self.lines.append(line)
-                self.alignments.append(alignment)
+                self.alignments += alignments
 
                 if discarded:
                     discarded_snps.append(discarded)
