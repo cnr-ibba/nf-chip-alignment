@@ -10,6 +10,7 @@ import re
 import logging
 import Bio.SeqIO
 
+from Bio.SearchIO._model.hsp import HSP
 from Bio.SearchIO._model.query import QueryResult
 from Bio.SeqRecord import SeqRecord
 
@@ -158,6 +159,8 @@ class BlatResult():
             f"iln_pos: {self.iln_pos}, iln_strand: {self.iln_strand} "
             f"probe_len: {self.probe_len}")
 
+        self.got_manifest = True
+
     def filter_results(self, lenth_pct=60, ident_pct=97):
         # reset best hsp
         self.best_hit = None
@@ -193,8 +196,6 @@ class BlatResult():
                 f"All alignments have been filtered out for "
                 f"{self.queryresult.id}")
 
-            self.status = "No valid alignments after filtering"
-
         elif len(filtered.hits) > 1 or len(filtered.hsps) > 1:
             for hsp in filtered.hsps:
                 logger.debug(
@@ -224,7 +225,7 @@ class BlatResult():
             filtered.hsps, key=lambda hsp: hsp.score, reverse=True)
 
         if hsp1.score > hsp2.score:
-            def filter_hsps(hsp):
+            def filter_hsps(hsp: HSP):
                 if hsp.score < hsp1.score:
                     logger.debug(
                         f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
@@ -252,8 +253,12 @@ class BlatResult():
 
         return filtered
 
-    def __discard_snp(self):
+    def __discard_snp(self, message: str):
         """Returns a record for a discarded snp"""
+
+        logger.error(message)
+        logger.warning(f"Discarding {self}")
+        self.status = message
 
         line = [
             self.snp_id, 0, 0, None, self.iln_snp, None,
@@ -275,7 +280,7 @@ class BlatResult():
         for fragment in hsp.fragments:
             start, end = fragment.query_range
             if self.iln_pos >= start and self.iln_pos <= end:
-                logger.info(f"found {self.iln_snp} in {fragment}")
+                logger.debug(f"found {self.iln_snp} in {fragment}")
                 found = fragment
 
         if not found:
@@ -339,22 +344,17 @@ class BlatResult():
 
                 # check that SNP is in sequence
                 if (snp_pos > hsp.query_end) or (snp_pos < hsp.query_start):
-                    logger.error(
-                        f"Can't find {self.iln_snp} in alignment")
-                    logger.warning(f"Discarding {self}")
-                    self.status = f"Can't find {self.iln_snp} in alignment"
-                    line, discarded = self.__discard_snp()
-                    yield line, alignment, discarded
+                    message = f"Can't find {self.iln_snp} in alignment"
+                    line, discarded = self.__discard_snp(message)
+                    yield line, alignments, discarded
                     continue
 
                 # check that is letter is a N
                 if alignment[0][snp_pos].upper() != 'N':
                     logger.error(alignment[:, snp_pos-5:snp_pos+6])
-                    logger.error(f"Cannot find SNP in position {snp_pos}")
-                    logger.warning(f"Discarding {self}")
-                    self.status = f"Cannot find SNP in position {snp_pos}"
-                    line, discarded = self.__discard_snp()
-                    yield line, alignment, discarded
+                    message = f"Cannot find SNP in position {snp_pos}"
+                    line, discarded = self.__discard_snp(message)
+                    yield line, alignments, discarded
                     continue
 
                 if hsp.hit_strand > 0:
@@ -382,9 +382,8 @@ class BlatResult():
                     logger.warning(
                         f"Cannot find alt_allele in illumina SNP: "
                         f"'{exc}")
-                    logger.warning(f"Discarding {self}")
-                    self.status = "Allele doesn't match to reference"
-                    line, discarded = self.__discard_snp()
+                    message = "Allele doesn't match to reference"
+                    line, discarded = self.__discard_snp(message)
 
                 else:
                     logger.info(
@@ -403,15 +402,23 @@ class BlatResult():
 
                 yield line, alignments, discarded
 
-    def process_alignments(self, id2chromosome):
+    def process_alignments(self, id2chromosome: dict):
         """Returns an output record and the processed alignment"""
 
         self.lines, self.alignments, discarded_snps = [], [], []
 
-        if self.is_filtered and not self.best_hit:
-            logger.warning(f"Discarding {self}")
-            # return an empty alignment
-            line, discarded = self.__discard_snp()
+        if not self.is_filtered:
+            raise BlatException(
+                "You have to call 'filter_results()' before this method")
+
+        if not self.got_manifest:
+            raise BlatException(
+                "You have to call 'read_sequence_manifest()' "
+                "before this method")
+
+        if not self.best_hit:
+            message = "No valid alignments after filtering"
+            line, discarded = self.__discard_snp(message)
             self.lines.append(line)
             discarded_snps.append(discarded)
 
