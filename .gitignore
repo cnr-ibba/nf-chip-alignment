@@ -2,6 +2,7 @@
 work/
 data/
 results/
+results_*/
 .DS_Store
 testing/
 testing*
@@ -169,3 +170,7 @@ cython_debug/
 
 # ignore other files
 *.txt
+*.gz
+*.aln
+*.err
+*.csv

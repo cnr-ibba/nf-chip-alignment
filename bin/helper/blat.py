@@ -224,7 +224,7 @@ class BlatResult():
         hsp1, hsp2, *_ = sorted(
             filtered.hsps, key=lambda hsp: hsp.score, reverse=True)
 
-        if hsp1.score > hsp2.score:
+        if hsp1.score >= hsp2.score:
             def filter_hsps(hsp: HSP):
                 if hsp.score < hsp1.score:
                     logger.debug(
@@ -284,7 +284,7 @@ class BlatResult():
                 found = fragment
 
         if not found:
-            raise BlatException(f"Cannot find {self.iln_snp} in fragment")
+            raise BlatException(f"Cannot find '{self.iln_snp}' in fragment")
 
         return found
 
@@ -323,7 +323,7 @@ class BlatResult():
                                 fragment, chrom)
                             alignments.append(alignment)
 
-                        line, discarded = self.__discard_snp(exc)
+                        line, discarded = self.__discard_snp(exc.value)
                         yield line, alignments, discarded
                         continue
 
