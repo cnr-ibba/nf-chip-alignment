@@ -7,7 +7,7 @@ nextflow.enable.dsl = 2
 include { MANIFEST2FASTA } from './modules/local/manifest2fasta'
 include { TABIX_BGZIP } from './modules/nf-core/tabix/bgzip/main'
 include { BLAST_MAKEBLASTDB } from './modules/nf-core/blast/makeblastdb/main'
-include { BLAST_BLASTN } from './modules/nf-core/blast/blastn/main'
+include { BLAST_BLASTN as BLAST_MEGABLAST } from './modules/nf-core/blast/blastn/main'
 include { PROCESSALIGNMENT } from './modules/local/processalignment'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from './modules/nf-core/custom/dumpsoftwareversions/main'
 
@@ -35,10 +35,10 @@ workflow {
         fasta -> [[ id: fasta.baseName ], fasta]
     }.set{ blast_input }
 
-    BLAST_BLASTN(blast_input, BLAST_MAKEBLASTDB.out.db)
-    ch_versions = ch_versions.mix(BLAST_BLASTN.out.versions)
+    BLAST_MEGABLAST(blast_input, BLAST_MAKEBLASTDB.out.db)
+    ch_versions = ch_versions.mix(BLAST_MEGABLAST.out.versions)
 
-    BLAST_BLASTN.out.txt.map{
+    BLAST_MEGABLAST.out.txt.map{
         meta, alignment -> [[ id: alignment.baseName ], alignment]
     }.set{ processalignment_input }
 
