@@ -32,8 +32,8 @@ def parse_description(description):
 def rename_hit(hit):
     # try to determine chromosome name
     match_chrom = re.search(r"chromosome (\w*),", hit.description)
-    match_scaff = re.search(r"(scaffold_[0-9]+),", hit.description)
-    match_unknw = re.search(r"(unplaced_[0-9]+),", hit.description)
+    match_scaff = re.search(r"(scaffold_?[0-9]+),", hit.description)
+    match_unknw = re.search(r"(unplaced_?[0-9]+),", hit.description)
 
     if match_chrom:
         hit.id = match_chrom.groups()[0]

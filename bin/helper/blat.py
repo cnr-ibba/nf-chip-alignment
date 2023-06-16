@@ -29,8 +29,8 @@ def parse_chromosomes(genome_file):
     def parse_chromosome(sequence):
         # try to determine chromosome name
         match_chrom = re.search(r"chromosome (\w*),", sequence.description)
-        match_scaff = re.search(r"(scaffold_[0-9]+),", sequence.description)
-        match_unknw = re.search(r"(unplaced_[0-9]+),", sequence.description)
+        match_scaff = re.search(r"(scaffold_?[0-9]+),", sequence.description)
+        match_unknw = re.search(r"(unplaced_?[0-9]+),", sequence.description)
 
         chrom = sequence.id
 
