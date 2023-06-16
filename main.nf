@@ -16,7 +16,7 @@ workflow {
     // get manifest from parameters
     manifest_ch = Channel.fromPath( params.manifest )
     genome_ch = Channel.fromPath( params.genome )
-        .map{ it -> [[id:it.getSimpleName()], it] }
+        .map{ it -> [[ id:it.baseName ], it] }
     ch_versions = Channel.empty()
 
     if (params.genome.endsWith('.gz')) {
