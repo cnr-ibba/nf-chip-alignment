@@ -37,12 +37,13 @@ if __name__ == '__main__':
     for i, record in enumerate(read_Manifest(args.input, delimiter=",")):
         logger.debug("-------------------------------------------------------")
 
-        sequence = Bio.Seq.Seq(record.sourceseq)
-        logger.debug(f"Got record.sourceseq: {record.sourceseq}")
+        # create a new sequence object by strippint first and last Ns
+        sequence = Bio.Seq.Seq(record.sourceseq).strip(chars="N")
+        logger.debug(f"Got sequence: {sequence}")
 
         # read snp as illuSNP
         try:
-            iln_snp = IlluSNP(record.sourceseq, max_iter=60)
+            iln_snp = IlluSNP(str(sequence), max_iter=60)
 
         except IlluSNPException as exc:
             logger.warning(exc)
