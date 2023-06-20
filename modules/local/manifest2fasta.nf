@@ -19,6 +19,7 @@ process MANIFEST2FASTA {
 
     """
     chip2fasta.py \\
+        $args \\
         --input $manifest \\
         --output ${manifest.baseName}.fasta
     """

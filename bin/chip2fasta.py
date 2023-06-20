@@ -14,7 +14,9 @@ import Bio.SeqIO
 import Bio.SeqRecord
 
 from helper import SNP2BASES
-from helper.illumina import read_Manifest, IlluSNP, IlluSNPException
+from helper.illumina import (
+    read_Manifest as read_illumina, IlluSNP, IlluSNPException)
+from helper.affymetrix import read_Manifest as read_affymetrix
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +26,27 @@ parser.add_argument(
     "-i", "--input", required=True, help="Manifest file input path")
 parser.add_argument(
     "-o", "--output", required=True, help="Fasta file output path")
+parser.add_argument(
+    "-m", "--manufacturer",
+    choices=['illumina', 'affymetrix'],
+    default="illumina", help="Chip manifacturer (default: '%(default)s')")
 args = parser.parse_args()
 
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)
+
+    # determine the proper method relying on manufacturer
+    read_Manifest = None
+
+    if args.manufacturer == 'illumina':
+        read_Manifest = read_illumina
+    elif args.manufacturer == 'affymetrix':
+        read_Manifest = read_affymetrix
+    else:
+        raise NotImplementedError(
+            f"Manufacturer '{args.manufacturer}' not implemented")
 
     logger.info(f"Opening '{args.output}' for writing")
     handle = open(args.output, "w")
