@@ -79,6 +79,7 @@ if __name__ == '__main__':
         logger.debug(f"found {iln_snp.alleles} in {start}:{end}")
 
         # transform in a mutable object
+        # TODO: tomutable is a deprecated method!
         sequence = sequence.tomutable()
 
         # replace SNP with ambiguous code
