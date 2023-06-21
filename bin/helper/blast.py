@@ -205,7 +205,7 @@ class BlastResult():
         return line, discarded
 
     def __find_snp_pos(self, hsp):
-        """Search SNP in alignment query. Return 1-based position"""
+        """Search SNP in alignment query. Return 0-based position"""
         # the SNP position in the alignment (mind to the query strand)
         if hsp.query_strand > 0:
             snp_pos = self.iln_pos - hsp.query_start - 1
@@ -269,8 +269,10 @@ class BlastResult():
                     Seq(hsp.aln_annotation['similarity']), id='')
                 alignment.append(annotation)
 
-                # check that SNP is in sequence
-                if (snp_pos > hsp.query_end) or (snp_pos < hsp.query_start):
+                # check that SNP is in sequence (mind that snp_pos is scaled
+                # by query start)
+                if ((snp_pos >= (hsp.query_end - hsp.query_start)) or
+                        (snp_pos < hsp.query_start)):
                     logger.error(
                         f"Can't find {self.iln_snp} in alignment")
                     logger.warning(f"Discarding {self}")
