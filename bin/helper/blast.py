@@ -189,8 +189,13 @@ class BlastResult():
         self.filtered = filtered
         self.is_filtered = True
 
-    def __discard_snp(self):
+    def __discard_snp(self, status=None):
         """Returns a record for a discarded snp"""
+
+        if status:
+            logger.error(status)
+            logger.warning(f"Discarding {self}")
+            self.status = status
 
         line = [
             self.snp_id, 0, 0, None, self.iln_snp, None,
@@ -253,6 +258,52 @@ class BlastResult():
 
         return ref_pos
 
+    def __reject_adjacent_gaps(self, hsp):
+        """check and discard SNP with adjacent gaps when reference sequence
+        is compatible with the SNP call"""
+
+        # the SNP position in the alignment (mind to the query strand)
+        idx = hsp.query.seq.find(SNP2BASES[self.iln_snp])
+
+        # check and discard SNP after/before gaps, with reference
+        # sequences compatible with self.iln_snp: in those cases
+        # I can't determine a unique position. See this example
+        # GGAA-YCAGTT 250506CS3900371000001_1255.1
+        # GGAACTCAGTT 11:35291071-35291193
+        # ||||  |||||
+
+        # test for gap before SNP
+        if hsp.query.seq[idx-1] == '-':
+            base = hsp.hit.seq[idx-1]
+            if base in self.iln_snp.split("/"):
+                return True
+
+        # test for gap after SNP
+        if hsp.query.seq[idx+1] == '-':
+            base = hsp.hit.seq[idx+1]
+            if base in self.iln_snp.split("/"):
+                return True
+
+        # check and discard SNP after/before gaps, with reference
+        # allele compatible with SNP neighbour. Something like
+        # TAAGYCGAGG
+        # TAAGC-GAGG
+        # ||||  ||||
+
+        # ensure no cases with gaps on reference sequence
+        # in this case
+        if hsp.hit.seq[idx-1] == '-':
+            base = hsp.hit.seq[idx]
+            if base == hsp.query.seq[idx-1]:
+                return True
+
+        if hsp.hit.seq[idx+1] == '-':
+            base = hsp.hit.seq[idx]
+            if base == hsp.query.seq[idx+1]:
+                return True
+
+        return False
+
     def __process_hits(self):
         discarded = []
 
@@ -294,30 +345,30 @@ class BlastResult():
                 # by query start)
                 if ((snp_pos >= (hsp.query_end - hsp.query_start)) or
                         (snp_pos < hsp.query_start)):
-                    logger.error(
-                        f"Can't find {self.iln_snp} in alignment")
-                    logger.warning(f"Discarding {self}")
-                    self.status = f"Can't find {self.iln_snp} in alignment"
-                    line, discarded = self.__discard_snp()
+                    message = f"Can't find {self.iln_snp} in alignment"
+                    line, discarded = self.__discard_snp(message)
                     yield line, alignment, discarded
                     continue
 
                 # check snp position with IPAC ambiguity codes
                 if alignment[0][snp_pos].upper() != SNP2BASES[self.iln_snp]:
+                    message = f"Cannot find SNP in position {snp_pos}"
                     logger.error(alignment[:, snp_pos-5:snp_pos+6])
-                    logger.error(f"Cannot find SNP in position {snp_pos}")
-                    logger.warning(f"Discarding {self}")
-                    self.status = f"Cannot find SNP in position {snp_pos}"
-                    line, discarded = self.__discard_snp()
+                    line, discarded = self.__discard_snp(message)
                     yield line, alignment, discarded
                     continue
 
-                # TODO: check and discard SNP after/before gaps, with reference
+                # check and discard SNP after/before gaps, with reference
                 # sequences compatible with self.iln_snp: in those cases
-                # I can't determine a unique position. See this example
-                # GGAA-YCAGTT 250506CS3900371000001_1255.1
-                # GGAACTCAGTT 11:35291071-35291193
-                # ||||  |||||
+                # I can't determine a unique position.
+                if self.__reject_adjacent_gaps(hsp):
+                    message = (
+                        f"Cannot determine a unique position for SNP "
+                        f"{self.iln_snp} ({snp_pos})")
+                    logger.error(alignment[:, snp_pos-5:snp_pos+6])
+                    line, discarded = self.__discard_snp(message)
+                    yield line, alignment, discarded
+                    continue
 
                 ref_pos = self.__find_ref_pos(hsp, snp_pos)
 
@@ -341,9 +392,8 @@ class BlastResult():
                     logger.warning(
                         f"Cannot find alt_allele in illumina SNP: "
                         f"'{ref_allele}' not in {self.iln_snp}")
-                    logger.warning(f"Discarding {self}")
-                    self.status = "Allele doesn't match to reference"
-                    line, discarded = self.__discard_snp()
+                    message = "Allele doesn't match to reference"
+                    line, discarded = self.__discard_snp(message)
 
                 else:
                     logger.info(
