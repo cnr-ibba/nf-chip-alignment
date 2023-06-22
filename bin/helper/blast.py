@@ -206,6 +206,7 @@ class BlastResult():
 
     def __find_snp_pos(self, hsp):
         """Search SNP in alignment query. Return 0-based position"""
+
         # the SNP position in the alignment (mind to the query strand)
         if hsp.query_strand > 0:
             snp_pos = self.iln_pos - hsp.query_start - 1
@@ -227,10 +228,30 @@ class BlastResult():
             # adjust snp_pos
             snp_pos -= gaps
 
-            # TODO: remove this check
-            raise Exception(f"found gap right to the SNP {self.snp_id}")
-
         return snp_pos
+
+    def __find_ref_pos(self, hsp, snp_pos):
+        """Search for REF position on HIT sequence"""
+
+        if hsp.hit_strand > 0:
+            ref_pos = hsp.hit_start + snp_pos
+
+            # test for gapped reference
+            gaps = hsp.hit.seq.count("-", 0, snp_pos)
+
+            # adjust snp_pos
+            ref_pos -= gaps
+
+        else:
+            ref_pos = hsp.hit_end - snp_pos - 1
+
+            # test for gapped reference
+            gaps = hsp.hit.seq.count("-", snp_pos)
+
+            # adjust snp_pos
+            ref_pos += gaps
+
+        return ref_pos
 
     def __process_hits(self):
         discarded = []
@@ -291,10 +312,14 @@ class BlastResult():
                     yield line, alignment, discarded
                     continue
 
-                if hsp.hit_strand > 0:
-                    ref_pos = hsp.hit_start + snp_pos
-                else:
-                    ref_pos = hsp.hit_end - snp_pos - 1
+                # TODO: check and discard SNP after/before gaps, with reference
+                # sequences compatible with self.iln_snp: in those cases
+                # I can't determine a unique position. See this example
+                # GGAA-YCAGTT 250506CS3900371000001_1255.1
+                # GGAACTCAGTT 11:35291071-35291193
+                # ||||  |||||
+
+                ref_pos = self.__find_ref_pos(hsp, snp_pos)
 
                 # this is 0-based index
                 ref_allele = alignment[1][snp_pos].upper()
