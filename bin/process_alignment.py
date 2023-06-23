@@ -66,6 +66,11 @@ if __name__ == '__main__':
         error = csv.writer(error_csv_fh, delimiter=",", lineterminator="\n")
         error.writerow(["snp_name", "illumina", "illumina_strand", "reason"])
 
+    logger.info(f"Processing {args.alignment}")
+    logger.info(
+        f"Filtering for length_pct: {args.length_pct}% and ident_pct: "
+        f"{args.ident_pct}%")
+
     for record in Bio.SearchIO.parse(args.alignment, "blast-xml"):
         # result represent a single search query
         logger.info("-------------------------------------------------------")

@@ -128,7 +128,7 @@ class BlastResult():
         logger.info(
             f"Got {len(self.queryresult.hits)} hits for {self.queryresult.id}")
 
-        # filter results by bitscore (query aligned)
+        # filter results by alignment length and identity
         def filter_hsps(hsp):
             if hsp.is_fragmented:
                 logger.warning(
@@ -156,7 +156,17 @@ class BlastResult():
 
             return True
 
+        # apply first filter on length
         filtered = self.queryresult.hsp_filter(filter_hsps)
+
+        # filter by HSP score:
+        # get best score and filter all HSPs with the same score
+        if len(filtered) > 0:
+            evalues = [hsp.evalue for hsp in filtered.hsps]
+            best_score = min(evalues)
+
+        # apply second filter on HSP score
+        filtered = filtered.hsp_filter(lambda hsp: hsp.evalue <= best_score)
 
         logger.info(f"Got {len(filtered.hits)} hits after filtering")
 
@@ -177,12 +187,9 @@ class BlastResult():
 
             self.status = "Too many alignments after filtering"
 
-            # try to sort and filter results
-            # filtered = self.sort_filtered(filtered)
-
-            # logger.warning(
-            #     f"Got {len(filtered.hsps)} alignments after filtering for "
-            #     f"{self.queryresult.id}")
+            logger.warning(
+                f"Got {len(filtered.hsps)} alignments after filtering for "
+                f"{self.queryresult.id}")
 
         else:
             self.best_hit = filtered[0]
