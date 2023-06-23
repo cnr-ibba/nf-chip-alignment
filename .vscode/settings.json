@@ -3,6 +3,7 @@
         "affymetrix",
         "blastn",
         "ibba",
+        "IUPAC",
         "megablast",
         "NCBI",
         "nextflow"

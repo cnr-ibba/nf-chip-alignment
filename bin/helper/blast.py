@@ -347,14 +347,14 @@ class BlastResult():
                 # by query start)
                 if ((snp_pos >= (hsp.query_end - hsp.query_start)) or
                         (snp_pos < hsp.query_start)):
-                    message = f"Can't find {self.iln_snp} in alignment"
+                    message = f"Can't find SNP in alignment"
                     line, discarded = self.__discard_snp(message)
                     yield line, alignment, discarded
                     continue
 
-                # check snp position with IPAC ambiguity codes
+                # check snp position with IUPAC ambiguity codes
                 if alignment[0][snp_pos].upper() != SNP2BASES[self.iln_snp]:
-                    message = f"Cannot find SNP in position {snp_pos}"
+                    message = f"Cannot find the expected SNP in sequence"
                     logger.error(alignment[:, snp_pos-5:snp_pos+6])
                     line, discarded = self.__discard_snp(message)
                     yield line, alignment, discarded
@@ -365,8 +365,7 @@ class BlastResult():
                 # I can't determine a unique position.
                 if self.__reject_adjacent_gaps(hsp):
                     message = (
-                        f"Cannot determine a unique position for SNP "
-                        f"{self.iln_snp} ({snp_pos})")
+                        f"Cannot determine a unique SNP position")
                     logger.error(alignment[:, snp_pos-5:snp_pos+6])
                     line, discarded = self.__discard_snp(message)
                     yield line, alignment, discarded
