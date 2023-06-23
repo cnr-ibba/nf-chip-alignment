@@ -31,7 +31,7 @@ parser.add_argument(
     "--error_csv", required=False,
     help="SNP which can't be mapped for any reason")
 parser.add_argument(
-    "--lenth_pct", required=False, type=float, default=60,
+    "--length_pct", required=False, type=float, default=90,
     help="Percentage of the query aligned (default: %(default)s)")
 parser.add_argument(
     "--ident_pct", required=False, type=float, default=97,
@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
         # filter alignments
         result.filter_results(
-            lenth_pct=args.lenth_pct, ident_pct=args.ident_pct)
+            length_pct=args.length_pct, ident_pct=args.ident_pct)
 
         # process SNP informations
         lines, alignments, discarded_snps = result.process_alignments()

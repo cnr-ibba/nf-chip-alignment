@@ -120,7 +120,7 @@ class BlastResult():
             f"iln_pos: {self.iln_pos}, iln_strand: {self.iln_strand}, "
             f"probe_len: {self.probe_len}")
 
-    def filter_results(self, lenth_pct=60, ident_pct=97):
+    def filter_results(self, length_pct=90, ident_pct=97):
         # reset best hsp
         self.best_hit = None
 
@@ -137,19 +137,21 @@ class BlastResult():
                 )
                 return False
 
-            if (hsp.query_span / self.probe_len < lenth_pct / 100 or
-                    hsp.ident_num / self.probe_len < ident_pct / 100):
+            query_length_pct = hsp.query_span / self.probe_len * 100
+            query_ident_pct = hsp.ident_num / hsp.query_span * 100
+
+            if query_length_pct < length_pct or query_ident_pct < ident_pct:
                 logger.debug(
                     f"Filtering out {hsp.hit_id}:{hsp.hit_range_all}: "
-                    f"Bad Score: {hsp.bitscore} (ident_pct: "
-                    f"{hsp.ident_num / self.probe_len * 100})"
+                    f"Bad Score: {hsp.bitscore} (ident_pct: {query_ident_pct},"
+                    f" length_pct: {query_length_pct})"
                 )
                 return False
 
             logger.debug(
                 f"Keeping {hsp.hit_id}:{hsp.hit_range_all}: "
-                f"Score: {hsp.bitscore} (ident_pct: "
-                f"{hsp.ident_num / self.probe_len * 100})"
+                f"Score: {hsp.bitscore} (ident_pct: {query_ident_pct},"
+                f" length_pct: {query_length_pct})"
             )
 
             return True
