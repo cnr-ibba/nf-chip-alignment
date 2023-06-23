@@ -120,7 +120,7 @@ class BlastResult():
             f"iln_pos: {self.iln_pos}, iln_strand: {self.iln_strand}, "
             f"probe_len: {self.probe_len}")
 
-    def filter_results(self, length_pct=90, ident_pct=97):
+    def filter_results(self, length_pct=95, ident_pct=97):
         # reset best hsp
         self.best_hit = None
 

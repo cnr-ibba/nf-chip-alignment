@@ -31,7 +31,7 @@ parser.add_argument(
     "--error_csv", required=False,
     help="SNP which can't be mapped for any reason")
 parser.add_argument(
-    "--length_pct", required=False, type=float, default=90,
+    "--length_pct", required=False, type=float, default=95,
     help="Percentage of the query aligned (default: %(default)s)")
 parser.add_argument(
     "--ident_pct", required=False, type=float, default=97,
@@ -66,10 +66,10 @@ if __name__ == '__main__':
         error = csv.writer(error_csv_fh, delimiter=",", lineterminator="\n")
         error.writerow(["snp_name", "illumina", "illumina_strand", "reason"])
 
-    for result in Bio.SearchIO.parse(args.alignment, "blast-xml"):
+    for record in Bio.SearchIO.parse(args.alignment, "blast-xml"):
         # result represent a single search query
         logger.info("-------------------------------------------------------")
-        result = BlastResult(result)
+        result = BlastResult(record)
 
         # filter alignments
         result.filter_results(
