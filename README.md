@@ -2,7 +2,7 @@
 # Nextflow chip alignment
 
 This nextflow pipeline is an attempt to align probes from a chip-manifest file
-on a reference genomes using [blat](https://genome.ucsc.edu/goldenPath/help/blatSpec.html).
+on a reference genomes using [blast](https://blast.ncbi.nlm.nih.gov/Blast.cgi).
 The reason of doing this is to define the strand orientation of the probe on the
 reference sequence, in order to be able to convert a genotype from *illumina top*
 to *forward* (or *ALT/REF*) coordinates. This pipeline was developed as a component
@@ -48,10 +48,12 @@ nextflow run cnr-ibba/nf-chip-alignment -resume -profile singularity --manifest 
 
 ## About alignments
 
-Alignment are filtered relying *percentage aligned* and *percentage
-identiy*. A probe is considered unmapped if all alignments are filtered,
+Alignments are made using `megablast` task, which is more stringent and faster
+then the default `blastn`.
+Alignments are filtered relying *percentage aligned* and *percentage
+identity*. A probe is considered unmapped if all alignments are filtered,
 if there are more than one alignment after filtering or if the SNP doesn't
 match to the reference genome. The last condition however is not correlated in
-a issue in alignment, however I could be difficult to join this particular SNP
+a issue in alignment, however it could be difficult to join this particular SNP
 with other data or refer it to a reference SNP. For such reason SNP is discarded
 even if there's a perfect match of the probe

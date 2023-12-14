@@ -6,6 +6,7 @@ Created on Mon Mar 15 14:13:51 2021
 @author: Paolo Cozzi <paolo.cozzi@ibba.cnr.it>
 """
 
+import io
 import re
 import gzip
 import logging
@@ -80,3 +81,40 @@ def complement(genotype: str):
         result += bases[base]
 
     return result
+
+
+def skip_comments(handle: io.TextIOWrapper, comment_char="#") -> (int, list):
+    """
+    Ignore comments lines from a open file handle. Return the stream position
+    immediately after the comments and all the comment lines in a list.
+
+    Parameters
+    ----------
+    handle : io.TextIOWrapper
+        An open file handle.
+    comment_char : TYPE, optional
+        The comment character used in file. The default is "#".
+
+    Returns
+    -------
+    (int, list)
+        The stream position after the comments and the ignored lines as a list.
+    """
+
+    # track skipped lines
+    skipped = list()
+
+    # read first line
+    line = handle.readline().strip()
+
+    # search for comments in file
+    while line[0] == "#":
+        logger.debug(f"Skipping: {line}")
+        skipped.append(line)
+        position = handle.tell()
+
+        # read another line
+        line = handle.readline().strip()
+
+    # the position returned is the one before the one I want
+    return position, skipped

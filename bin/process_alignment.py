@@ -14,7 +14,7 @@ import Bio.SeqIO
 import Bio.SearchIO
 import Bio.AlignIO
 
-from helper.blat import BlatResult, parse_chromosomes
+from helper.blast import BlastResult
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +24,6 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "-a", "--alignment", required=True, help="Chip alignment file")
 parser.add_argument(
-    "-c", "--chip_sequence", required=True, help="Chip fasta file")
-parser.add_argument(
-    "-g", "--genome_sequence", required=True, help="Genome fasta file")
-parser.add_argument(
     "--output_aln", required=False, help="Output alignment file")
 parser.add_argument(
     "-o", "--output_csv", required=True, help="Output CSV file")
@@ -35,7 +31,7 @@ parser.add_argument(
     "--error_csv", required=False,
     help="SNP which can't be mapped for any reason")
 parser.add_argument(
-    "--lenth_pct", required=False, type=float, default=60,
+    "--length_pct", required=False, type=float, default=95,
     help="Percentage of the query aligned (default: %(default)s)")
 parser.add_argument(
     "--ident_pct", required=False, type=float, default=97,
@@ -48,12 +44,6 @@ if __name__ == '__main__':
 
     # process received arguments
     args = parser.parse_args()
-
-    # read the chip fasta file
-    chip_sequences = Bio.SeqIO.index(args.chip_sequence, "fasta")
-
-    # get descriptions from genome file
-    id2chromosome = parse_chromosomes(args.genome_sequence)
 
     # open file for writing
     output_csv_fh = open(args.output_csv, "w")
@@ -76,22 +66,22 @@ if __name__ == '__main__':
         error = csv.writer(error_csv_fh, delimiter=",", lineterminator="\n")
         error.writerow(["snp_name", "illumina", "illumina_strand", "reason"])
 
-    for result in Bio.SearchIO.parse(args.alignment, "blat-psl", pslx=True):
+    logger.info(f"Processing {args.alignment}")
+    logger.info(
+        f"Filtering for length_pct: {args.length_pct}% and ident_pct: "
+        f"{args.ident_pct}%")
+
+    for record in Bio.SearchIO.parse(args.alignment, "blast-xml"):
         # result represent a single search query
         logger.info("-------------------------------------------------------")
-        result = BlatResult(result)
-
-        # collect SNP info
-        snp_sequence = chip_sequences[result.snp_id]
-        result.read_sequence_manifest(snp_sequence)
+        result = BlastResult(record)
 
         # filter alignments
         result.filter_results(
-            lenth_pct=args.lenth_pct, ident_pct=args.ident_pct)
+            length_pct=args.length_pct, ident_pct=args.ident_pct)
 
         # process SNP informations
-        lines, alignments, discarded_snps = result.process_alignments(
-            id2chromosome)
+        lines, alignments, discarded_snps = result.process_alignments()
 
         for line in lines:
             logger.debug(f"Writing {line}")
